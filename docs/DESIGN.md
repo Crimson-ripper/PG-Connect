@@ -216,3 +216,17 @@ Steps: see `client/BUILDING-PRODUCTIFY.md`. CI: `client/.github/workflows/produc
 - Full local E2E without renting: any PC on the LAN with Sunshine and an app named `Steam` →
   `mock_backend.py --host-address <ip> --sunshine-url https://<ip>:47990` (SUNSHINE_PASS in env).
 - Real host: STREAMING_TEST_PLAN T-K, T-K2, X-tests — **rents machines; ask the user first.**
+- `mock_backend.py --fake-host` also serves a fake Sunshine HTTP API on 127.0.0.1:47989 (serverinfo + pair
+  stage 1), which checks that the client asks Productify to submit the PIN *while* its pairing request
+  is waiting.
+
+**Results on 2026-10-22 (local, Windows 10, release dev build):**
+
+| Case | Result |
+|---|---|
+| `join TEST-1234` + `--fake-host` | connect → host found → pairing started → `/pairing` received while Sunshine "waited" → fake host rejects → "Pairing failed" shown, `client_error` event sent ✅ |
+| `BOOTING1` / `NOPE-0000` / deep link `productify://connect?code=EXPIRED1` | 409 / 404 / 410 messages shown ✅ |
+| `WGTEST12` (WireGuard not installed here) | "This session needs WireGuard…" ✅ (tunnel bring-up itself not exercised) |
+| invalid code `ab` | join screen opens empty, no request ✅ |
+| Real Sunshine pairing, streaming, app launch, tunnel | **not tested** (needs a Sunshine host) |
+| Join screen look | not visually checked by the agent (log shows no QML errors) |
