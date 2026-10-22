@@ -70,6 +70,8 @@ private:
     void setState(State state);
     void fail(const QString& message);
     void seekHost();
+    void probeHost(const QString& address, quint16 port, int attemptsLeft);
+    void startSeeker();
     void launchApp();
 
     QString m_InitialCode;

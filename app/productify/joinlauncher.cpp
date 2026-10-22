@@ -6,6 +6,9 @@
 #include "streaming/session.h"
 
 #include <QEventLoop>
+#include <QTcpSocket>
+
+#include <memory>
 #include <QNetworkReply>
 #include <QTimer>
 
@@ -133,6 +136,52 @@ void JoinLauncher::seekHost()
     setState(StateSeekingHost);
     emit stageChanged(tr("Connecting to your gaming machine..."));
 
+    // ComputerSeeker adds an unknown host with a single request. A tunnel that is still
+    // handshaking (or a VM still booting) loses that request, so first wait until
+    // Sunshine's HTTP port accepts a connection.
+    QString address = (m_Config.networkMode == "wireguard") ? m_Config.wireguard.hostTunnelAddress
+                                                            : m_Config.hostAddress;
+    probeHost(address, (quint16)m_Config.hostHttpPort, kHostSeekTimeoutMs / 1000);
+}
+
+void JoinLauncher::probeHost(const QString& address, quint16 port, int attemptsLeft)
+{
+    if (m_State != StateSeekingHost) {
+        return;
+    }
+
+    auto* socket = new QTcpSocket(this);
+    auto finished = std::make_shared<bool>(false);
+    auto done = [this, socket, finished, address, port, attemptsLeft](bool ok) {
+        if (*finished) {
+            return;
+        }
+        *finished = true;
+        socket->abort();
+        socket->deleteLater();
+        if (m_State != StateSeekingHost) {
+            return;
+        }
+        if (ok) {
+            startSeeker();
+        }
+        else if (attemptsLeft > 1) {
+            QTimer::singleShot(1000, this, [this, address, port, attemptsLeft]() {
+                probeHost(address, port, attemptsLeft - 1);
+            });
+        }
+        else {
+            onSeekTimeout();
+        }
+    };
+    connect(socket, &QTcpSocket::connected, this, [done]() { done(true); });
+    connect(socket, &QTcpSocket::errorOccurred, this, [done]() { done(false); });
+    QTimer::singleShot(2000, this, [done]() { done(false); });
+    socket->connectToHost(address, port);
+}
+
+void JoinLauncher::startSeeker()
+{
     connect(m_ComputerManager, &ComputerManager::pairingCompleted,
             this, &JoinLauncher::onPairingCompleted, Qt::UniqueConnection);
 

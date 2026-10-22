@@ -1,0 +1,53 @@
+{
+  "test": "T-K2 (Productify Connect -> Sunshine over WireGuard on the Vast identity UDP port)",
+  "date": "2026-10-22",
+  "result": "PASS (functional). Quality not representative: host far from player.",
+  "host": {
+    "provider": "vast.ai",
+    "instance_id": 57226505,
+    "offer_id": 57188853,
+    "template": "Vast official 'Ubuntu Desktop (VM)' 715c192fc2a112574ae5a9efb8c46b3b (docker.io/vastai/kvm:ubuntu_desktop_22.04-2025-11-21)",
+    "gpu": "RTX 3060 (driver 580.105.08)",
+    "cpu": "Intel Xeon E5-2680 v2 (9 vCPU) - too old for modern games; functional test only",
+    "ram_gb": 49,
+    "region": "Quebec, CA",
+    "price_per_hour_usd": 0.1437,
+    "rented_utc": "2026-10-22T14:40Z",
+    "destroyed_utc": "2026-10-22T15:55Z",
+    "boot": "rent -> running ~15 min (VM image pull on this host); SSH ready right after"
+  },
+  "client": {
+    "app": "Productify Connect dev build (moonlight-qt v6.2.0 fork), Windows 10 22H2",
+    "gpu": "Intel HD Graphics 5500 + GeForce 920M (H.264 hardware decode only; HEVC/AV1 not available)",
+    "location": "India (player's PC)",
+    "backend": "tools/mock-backend/mock_backend.py in real-host mode (WireGuard peer + PIN submitted over SSH)"
+  },
+  "steps": {
+    "session_code_connect": "pass",
+    "wireguard_tunnel_up": "pass after client fix (config moved to %ProgramData%\\Productify\\tunnels, SYSTEM/Administrators only)",
+    "host_found_over_tunnel": "pass after client fix (probe Sunshine port until the tunnel handshake completes)",
+    "automatic_pairing_with_one_time_pin": "pass (backend submitted PIN via curl on the VM; Sunshine accepted)",
+    "already_paired_reconnect_skips_pairing": "pass",
+    "app_launch": "pass after host fix (apps.json cmd must use /usr/games/steam; Sunshine's PATH lacks /usr/games)",
+    "video": "pass: 1920x1080 @ 60, H.264 NVENC -> D3D11VA, 20 Mbps",
+    "audio": "pass (with losses)",
+    "input_mouse_keyboard": "pass (confirmed by the player)",
+    "stream_end_events_and_tunnel_cleanup": "pass (stream_started/stream_ended received; tunnel service and config removed on exit)"
+  },
+  "metrics": {
+    "tunnel_ping_ms": {"min": 380, "avg": 438, "max": 611, "samples": 5},
+    "first_40s": {"dropped_frame_events": 12, "unrecoverable_frames": 3}
+  },
+  "host_findings": [
+    "The template's '-p 741641:741641/udp' became 54879/udp mapped 54879->54879 (identity). Read the real port from the instance's ports map.",
+    "tailscaled in the image already listens on that identity port (/etc/default/tailscaled PORT); stop/disable it before WireGuard uses the port.",
+    "The image has no apt lists: run apt-get update before installing wireguard-tools.",
+    "Sunshine 2025.924 is installed but not running; the desktop session is 'user' on DISPLAY=:0 via SDDM (no kiosk applied in this test).",
+    "Vast requires an SSH key on the account (not just the instance) to create VM instances; creating with the raw image (no template_hash_id) failed with 'no_such_ask'."
+  ],
+  "not_tested": [
+    "Kiosk lockdown (player saw the normal 'user' desktop session around Steam) - T-K1/T-K3",
+    "Quality from a nearby host (India) and with a modern CPU",
+    "Real Productify backend endpoints (mock used)"
+  ]
+}

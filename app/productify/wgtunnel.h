@@ -51,7 +51,8 @@ signals:
 
 private:
     QString m_TunnelName;
-    QString m_ConfigPath;
+    QString m_ConfigPath;   // staging copy in the user's profile (deleted once installed)
+    QString m_ServicePath;  // copy the tunnel service reads (SYSTEM/Administrators only)
     bool m_Up = false;
 };
 

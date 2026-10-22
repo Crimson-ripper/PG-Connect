@@ -131,7 +131,7 @@ or with a tunnel:
   `ssh root@vm gamezone-wg-peer add <client key>` and read the host key/port from
   `/root/gamezone-secrets`; for Vast, **resolve the real identity port** from the instance's port
   map (the template's `741641` is above 65535, so it is a Vast placeholder for "identity-mapped",
-  not a port — confirm the exact field during T-K2).
+  not a port — confirmed 2026-10-22: it appeared as `"54879/udp": [{"HostPort": "54879"}]`).
 
 Errors (`{"detail": "…"}`): `404` unknown code · `410` expired/used · `409` machine not ready
 (`retry_after` seconds) · `429` rate limited · `400` bad request (e.g. tunnel needed but no key).
@@ -173,7 +173,7 @@ ports firewalled to wg0 on the host.
 
 | Phase | Windows mechanism | Player experience | Status |
 |---|---|---|---|
-| **1 (now)** | Installed WireGuard for Windows, `wireguard.exe /installtunnelservice <conf>` via `ShellExecuteEx("runas")` | Needs WireGuard installed; one UAC prompt to connect and one at exit | Implemented, untested against a real host |
+| **1 (now)** | Installed WireGuard for Windows; one elevated `cmd` step copies the config to `%ProgramData%\Productify\tunnels` (SYSTEM/Admins only) and runs `wireguard.exe /installtunnelservice` | Needs WireGuard installed; one UAC prompt to connect and one at exit | Implemented; **worked against a real Vast VM on 2026-10-22** |
 | **2** | Ship `tunnel.dll` + `wireguard.dll` (wireguard-windows *embeddable-dll-service* / wireguard-nt) and a small **Productify Connect Tunnel** Windows service installed by the MSI (LocalSystem). The app talks to it over a named pipe with an ACL for interactive users; the service only accepts configs that are split-tunnel to `10.77.0.0/16`. | No extra install, no UAC per session | Design only |
 | **2b (alt)** | Userspace WireGuard + userspace TCP/IP (wireguard-go + gVisor netstack, as in *wireproxy*) forwarding `127.0.0.1:{Sunshine ports}` into the tunnel | No admin rights at all; cross-platform (also macOS/Linux/Android) | Design only; needs latency/throughput test (video is ~20–50 Mbit/s UDP) and handling of local port clashes |
 | macOS / Linux | Network Extension (macOS) / `wg-quick` via pkexec or 2b (Linux) | — | Not started (client says "not supported on this platform") |
@@ -228,5 +228,27 @@ Steps: see `client/BUILDING-PRODUCTIFY.md`. CI: `client/.github/workflows/produc
 | `BOOTING1` / `NOPE-0000` / deep link `productify://connect?code=EXPIRED1` | 409 / 404 / 410 messages shown ✅ |
 | `WGTEST12` (WireGuard not installed here) | "This session needs WireGuard…" ✅ (tunnel bring-up itself not exercised) |
 | invalid code `ab` | join screen opens empty, no request ✅ |
-| Real Sunshine pairing, streaming, app launch, tunnel | **not tested** (needs a Sunshine host) |
 | Join screen look | not visually checked by the agent (log shows no QML errors) |
+
+**Real Vast VM test, 2026-10-22 (T-K2) — PASS (functional).** RTX 3060 VM in Quebec (Xeon E5-2680 v2,
+$0.14/h, ~1.25 h), Vast's official Ubuntu Desktop (VM) template, client on the player's Windows 10 PC in
+India, mock backend in real-host mode. Code → WireGuard tunnel on the identity UDP port → host found →
+**automatic pairing with the one-time PIN** → Steam launched → 1080p60 H.264 stream → **mouse and
+keyboard confirmed working by the player** → `stream_ended` + tunnel removed on exit. Reconnect skipped
+pairing. Ping through the tunnel 380–611 ms and some frame loss: distance, not a quality result.
+Report: `test_reports/20261022-vast-vm-TK2-productify-connect.json`.
+
+Fixed during the test:
+- Client: WireGuard's SYSTEM service could not open configs in the user's AppData → configs now go to
+  `%ProgramData%\Productify\tunnels` (ACL: SYSTEM + Administrators) inside the same elevated step.
+- Client: a single host request right after the tunnel came up was lost during the WireGuard handshake →
+  probe Sunshine's port every second (≤ 45 s) before handing over to Moonlight's host search.
+- Client: delete stale staging configs left by a killed client.
+- Host script: `apt-get update` first; stop the image's `tailscaled`, which already listens on the identity port.
+- Kiosk onstart (web repo, **not changed here**): Sunshine's PATH lacks `/usr/games`, so app commands
+  must use `/usr/games/steam`.
+
+Vast findings: `-p 741641:741641/udp` became **54879/udp ↔ 54879** (identity, number chosen by Vast;
+read it from the instance's `ports`). VM creation needs an account-level SSH key and works with
+`template_hash_id` of the official VM template. For real gaming hosts, filter on CPU model too, not only
+GPU (old Xeons like the E5-2680 v2 are too slow for modern games).

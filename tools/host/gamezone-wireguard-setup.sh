@@ -19,7 +19,17 @@ WG_PORT="${GZ_WG_PORT:?set GZ_WG_PORT to the identity-mapped UDP port}"
 NET="${GZ_WG_NET:-10.77.0}"
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get -o DPkg::Lock::Timeout=600 install -y -qq wireguard-tools iptables >/dev/null
+if ! command -v wg >/dev/null; then
+  # The Vast desktop image ships without apt lists; tolerate flaky third-party repos in update.
+  apt-get -o DPkg::Lock::Timeout=600 update -qq || true
+  apt-get -o DPkg::Lock::Timeout=600 install -y -qq wireguard-tools iptables >/dev/null
+fi
+
+# Vast's desktop VM image runs tailscaled (logged out) on the identity port (/etc/default/tailscaled).
+# Gamezone uses that port for WireGuard instead.
+if systemctl is-active --quiet tailscaled; then
+  systemctl disable --now tailscaled
+fi
 
 umask 077
 mkdir -p /etc/wireguard

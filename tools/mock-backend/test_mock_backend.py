@@ -29,7 +29,7 @@ class MockBackendTest(unittest.TestCase):
         mock.main.__globals__["ARGS"] = None
         import argparse
         mock.ARGS = argparse.Namespace(host_address="192.0.2.10", http_port=47989, app_name="Steam",
-                                       sunshine_url=None, sunshine_user="admin", fake_host=False)
+                                       sunshine_url=None, sunshine_user="admin", fake_host=False, sunshine_ssh=None, wg_peer_key=None, wg_endpoint=None, wg_peer_cmd=None)
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), mock.Handler)
         cls.base = f"http://127.0.0.1:{cls.server.server_address[1]}"
         threading.Thread(target=cls.server.serve_forever, daemon=True).start()

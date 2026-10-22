@@ -58,7 +58,12 @@ static QString wireguardExePath()
     return QFile::exists(path) ? QDir::toNativeSeparators(path) : QString();
 }
 
-// Runs wireguard.exe elevated (UAC prompt) and waits for it. Returns the exit code, or -1.
+static QString cmdExePath()
+{
+    return QDir::toNativeSeparators(qEnvironmentVariable("SystemRoot", "C:\\Windows") + "/System32/cmd.exe");
+}
+
+// Runs a program elevated (UAC prompt) and waits for it. Returns the exit code, or -1.
 static int runElevated(const QString& exe, const QString& args)
 {
     std::wstring file = exe.toStdWString();
@@ -143,6 +148,11 @@ void WireGuardTunnel::up(const WireGuardConfig& config, const QString& privateKe
 
     QDir dir(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/tunnels");
     dir.mkpath(".");
+    // Staging configs left behind by a killed client still hold old private keys.
+    const QStringList stale = dir.entryList(QStringList("pfy-*.conf"), QDir::Files);
+    for (const QString& name : stale) {
+        dir.remove(name);
+    }
     m_ConfigPath = dir.filePath(m_TunnelName + ".conf");
 
     QFile file(m_ConfigPath);
@@ -155,8 +165,22 @@ void WireGuardTunnel::up(const WireGuardConfig& config, const QString& privateKe
     file.close();
 
 #ifdef Q_OS_WIN32
-    QString exe = wireguardExePath();
-    QString args = "/installtunnelservice \"" + QDir::toNativeSeparators(m_ConfigPath) + "\"";
+    // The tunnel service runs as LocalSystem and could not open configs in the user's
+    // AppData (tested 2026-10-22: "The system cannot find the path specified"). So the
+    // elevated step copies the config into %ProgramData%\Productify\tunnels, locked to
+    // SYSTEM and Administrators (the private key must not be readable by other users),
+    // deletes the staging copy and installs the tunnel from there.
+    QString dirPath = QDir::toNativeSeparators(qEnvironmentVariable("ProgramData", "C:\\ProgramData") + "/Productify/tunnels");
+    m_ServicePath = dirPath + "\\" + m_TunnelName + ".conf";
+    QString staging = QDir::toNativeSeparators(m_ConfigPath);
+    QString script =
+        "mkdir \"" + dirPath + "\" 2>nul & "
+        "icacls \"" + dirPath + "\" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F >nul & "
+        "copy /y \"" + staging + "\" \"" + m_ServicePath + "\" >nul && "
+        "del /q \"" + staging + "\" && "
+        "\"" + wireguardExePath() + "\" /installtunnelservice \"" + m_ServicePath + "\"";
+    QString exe = cmdExePath();
+    QString args = "/s /c \"" + script + "\"";
     QThread* worker = QThread::create([this, exe, args]() {
         int rc = runElevated(exe, args);
         QMetaObject::invokeMethod(this, [this, rc]() {
@@ -181,7 +205,8 @@ void WireGuardTunnel::down()
 #ifdef Q_OS_WIN32
     if (m_Up) {
         m_Up = false;
-        runElevated(wireguardExePath(), "/uninstalltunnelservice " + m_TunnelName);
+        runElevated(cmdExePath(), "/s /c \"\"" + wireguardExePath() + "\" /uninstalltunnelservice " + m_TunnelName +
+                                  " & del /q \"" + m_ServicePath + "\"\"");
     }
 #endif
     // The config holds this session's private key; never leave it behind.

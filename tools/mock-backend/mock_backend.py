@@ -60,6 +60,30 @@ def build_session(code, body):
         "app": {"name": ARGS.app_name},
         "network": {"mode": "direct"},
     }
+    if code == "TEST1234" and ARGS.wg_peer_key:
+        # Real host behind WireGuard (e.g. a rented Vast VM): register the client's key on the host.
+        client_key = body.get("wireguard_public_key") or ""
+        if not re.fullmatch(r"[A-Za-z0-9+/]{43}=", client_key):
+            raise ValueError("client did not send a valid wireguard_public_key")
+        if ARGS.wg_peer_cmd:
+            import subprocess
+            r = subprocess.run(ARGS.wg_peer_cmd.replace("{key}", client_key), shell=True,
+                               capture_output=True, text=True, timeout=30)
+            log(f"  wg peer add -> rc={r.returncode} {r.stdout.strip()} {r.stderr.strip()[:200]}")
+            if r.returncode != 0:
+                raise ValueError("could not register the client's WireGuard key on the host")
+        session["network"] = {
+            "mode": "wireguard",
+            "wireguard": {
+                "interface_address": "10.77.0.2/32",
+                "peer_public_key": ARGS.wg_peer_key,
+                "endpoint": ARGS.wg_endpoint,
+                "allowed_ips": "10.77.0.1/32",
+                "host_tunnel_address": "10.77.0.1",
+                "mtu": 1380,
+                "persistent_keepalive": 25,
+            },
+        }
     if code == "WGTEST12":
         session["network"] = {
             "mode": "wireguard",
@@ -86,6 +110,25 @@ def submit_pin_to_sunshine(code, pin, device_name):
     PIN_SUBMITTED.set()
     if ARGS.fake_host:
         log(f"{code}: (fake host) PIN submission received")
+        return
+    if ARGS.sunshine_ssh:
+        # Production-like path: run curl on the VM itself; Sunshine credentials never leave the VM.
+        import subprocess
+        name = re.sub(r"[^A-Za-z0-9 _-]", "", device_name or "Productify Connect")[:40] or "Productify Connect"
+        remote = ("set -a; . /root/gamezone-secrets; curl -sk -u \"$SUNSHINE_USER:$SUNSHINE_PASS\" "
+                  "-H 'Content-Type: application/json' "
+                  f"-d '{{\"pin\":\"{pin}\",\"name\":\"{name}\"}}' https://localhost:47990/api/pin")
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            r = subprocess.run(ARGS.sunshine_ssh + " " + json.dumps(remote), shell=True,
+                               capture_output=True, text=True, timeout=30)
+            out = (r.stdout or "").strip()
+            if '"status":true' in out.replace(" ", "") or '"status":"true"' in out.replace(" ", ""):
+                log(f"{code}: Sunshine accepted the PIN (via ssh)")
+                return
+            log(f"{code}: Sunshine answered {out[:120]!r} rc={r.returncode}; retrying")
+            time.sleep(1)
+        log(f"{code}: gave up submitting the PIN")
         return
     if not ARGS.sunshine_url:
         log(f"{code}: no --sunshine-url; enter PIN {pin} in the Sunshine web UI within 30s to finish pairing")
@@ -230,6 +273,12 @@ def main(argv=None):
     p.add_argument("--app-name", default="Steam", help="must match the app's name in Sunshine's apps.json")
     p.add_argument("--sunshine-url", help="Sunshine web UI, e.g. https://192.168.1.50:47990")
     p.add_argument("--sunshine-user", default="admin")
+    p.add_argument("--sunshine-ssh", help="ssh command prefix to the host (e.g. 'ssh -p 22 root@host'); the PIN is "
+                                          "submitted by curl on the host using /root/gamezone-secrets")
+    p.add_argument("--wg-peer-key", help="host WireGuard public key: TEST1234 then uses a tunnel")
+    p.add_argument("--wg-endpoint", help="host WireGuard endpoint ip:port")
+    p.add_argument("--wg-peer-cmd", help="shell command that registers {key} on the host, e.g. "
+                                         "'ssh root@host gamezone-wg-peer add {key}'")
     p.add_argument("--fake-host", action="store_true",
                    help="also serve a fake Sunshine serverinfo/pair API on 127.0.0.1:47989 (no streaming)")
     ARGS = p.parse_args(argv)
