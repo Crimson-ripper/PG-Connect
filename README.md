@@ -5,6 +5,7 @@ not publicly available yet). Players enter a session code and are connected to t
 machine automatically. It is a modified version of Moonlight PC (below), released under the
 GNU GPL v3; it is not endorsed by or affiliated with the Moonlight project.
 
+- Download (Windows x64, pilot): [Releases](https://github.com/Crimson-ripper/PG-Connect/releases)
 - What changed: [PRODUCTIFY_CHANGES.md](PRODUCTIFY_CHANGES.md) · Notices: [NOTICE.md](NOTICE.md)
 - Design and backend contract: [docs/DESIGN.md](docs/DESIGN.md)
 - Building: [BUILDING-PRODUCTIFY.md](BUILDING-PRODUCTIFY.md)

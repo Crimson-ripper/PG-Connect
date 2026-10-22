@@ -9,7 +9,7 @@
 #define PFY_ORG_NAME        "Productify"
 #define PFY_ORG_DOMAIN      "productifynow.com"
 #define PFY_URL_SCHEME      "productify"
-#define PFY_SOURCE_URL      "https://github.com/Crimson-ripper/productify-connect"  // TODO: confirm repo URL before first release
+#define PFY_SOURCE_URL      "https://github.com/Crimson-ripper/PG-Connect"
 
 // Base URL of the Productify backend. Overridable at build time
 // (qmake "DEFINES+=PFY_DEFAULT_API_BASE=\\\"https://...\\\"") and at run time with the

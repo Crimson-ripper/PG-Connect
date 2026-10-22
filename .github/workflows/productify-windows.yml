@@ -7,7 +7,7 @@ permissions:
 
 on:
   push:
-    branches: [productify]
+    branches: [main, productify]
     tags: ['pfy-v*']
   pull_request:
   workflow_dispatch:
@@ -83,3 +83,43 @@ jobs:
           name: zDevDbgSyms-Windows-x64-${{ env.CI_VERSION }}
           path: build/symbols-x64-release/*.pdb
           if-no-files-found: warn
+
+  # Tags pfy-vX.Y.Z publish a GitHub pre-release with the installer and portable zip.
+  # The source for each binary is this repository at the same tag (GPLv3).
+  release:
+    if: startsWith(github.ref, 'refs/tags/pfy-v')
+    needs: [windows-x64, mock-backend-tests]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download installer artifact
+        uses: actions/download-artifact@v5
+        with:
+          pattern: PGConnect-Windows-x64-installer-*
+          path: dist
+          merge-multiple: true
+
+      - name: Name release files
+        run: |
+          v="${GITHUB_REF_NAME#pfy-v}"
+          mkdir -p out
+          cp "$(find dist -name '*.msi' | head -1)" "out/PGConnect-Setup-${v}-x64.msi"
+          cp "$(find dist -name '*.zip' | head -1)" "out/PGConnect-Portable-${v}-x64.zip"
+          (cd out && sha256sum * > SHA256SUMS.txt)
+          ls -la out
+
+      - name: Publish pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${GITHUB_REF_NAME#pfy-v}"
+          gh release create "$GITHUB_REF_NAME" out/* --repo "$GITHUB_REPOSITORY" --prerelease \
+            --title "PG Connect ${v} (pilot)" \
+            --notes "Pilot build of PG Connect, Productify Gamezone's game-streaming client for Windows (x64).
+
+          Gamezone is in a closed pilot: you need a session code from Productify to connect. It is not open to the public yet.
+
+          PG Connect is free software based on Moonlight (moonlight-qt v6.2.0), licensed under the GNU GPL v3. Source code for this build: this repository at tag ${GITHUB_REF_NAME}.
+
+          Tunnelled sessions currently need WireGuard for Windows (https://www.wireguard.com/install/). The installer is not code-signed yet, so Windows SmartScreen may warn you."

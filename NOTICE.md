@@ -15,7 +15,7 @@ https://github.com/moonlight-stream/moonlight-qt), forked at release tag `v6.2.0
 ## Corresponding source
 
 The complete source code for every PG Connect binary is published at
-`[TODO: public repository URL, e.g. https://github.com/<org>/productify-connect]`, tagged with
+https://github.com/Crimson-ripper/PG-Connect, tagged with
 the same version as the binary. Productify's changes are listed in `PRODUCTIFY_CHANGES.md` and
 are kept as separate commits on top of the upstream tag.
 

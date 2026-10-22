@@ -24,6 +24,8 @@ git history record what was modified and when. Design: `docs/DESIGN.md`.
 | `app/qml.qrc` | adds `JoinView.qml` |
 | `app/gui/main.qml`, `PcView.qml`, `SettingsView.qml`, `StreamSegue.qml` | user-visible "Moonlight" → "PG Connect"; help/update links → productifynow.com; Discord button hidden |
 | `app/backend/autoupdatechecker.cpp` | upstream update check disabled |
+| `.github/workflows/` | upstream CI workflows removed; `productify-windows.yml` builds and releases PG Connect |
+| `app/version.txt` | PG Connect version (0.1.0) |
 | `app/Moonlight.exe.manifest` | description |
 | `wix/Moonlight/Product.wxs`, `wix/MoonlightSetup/Bundle.wxs` | product name, manufacturer, install folder, registry keys, new UpgradeCodes, icon, `productify://` handler |
 | `scripts/build-arch.bat`, `scripts/generate-bundle.bat` | exe/zip/installer names; ships LICENSE and NOTICE.md |
