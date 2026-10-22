@@ -14,12 +14,21 @@ public:
         QuitRequested,
         PairRequested,
         ListRequested,
+        // Productify Connect
+        JoinRequested,
+        RegisterUrlHandlerRequested,
     };
 
     GlobalCommandLineParser();
     virtual ~GlobalCommandLineParser();
 
     ParseResult parse(const QStringList &args);
+
+    // Session code from "join <code>" or a productify://connect?code=... link
+    QString getJoinCode() const { return m_JoinCode; }
+
+private:
+    QString m_JoinCode;
 
 };
 

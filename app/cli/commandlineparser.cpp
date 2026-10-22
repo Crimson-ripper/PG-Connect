@@ -1,4 +1,5 @@
 #include "commandlineparser.h"
+#include "productify/sessionapi.h"
 
 #include <QCommandLineParser>
 #include <QRegularExpression>
@@ -154,15 +155,17 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
     parser.setupCommonOptions();
     parser.setApplicationDescription(
         "\n"
-        "Starts Moonlight normally if no arguments are given.\n"
+        "Starts Productify Connect normally if no arguments are given.\n"
         "\n"
         "Available actions:\n"
+        "  join            Join a Productify session: join <code>\n"
+        "  register-url-handler  Register productify:// links for this user\n"
         "  list            List the available apps on a host\n"
         "  quit            Quit the currently running app\n"
         "  stream          Start streaming an app\n"
         "  pair            Pair a new host\n"
         "\n"
-        "See 'moonlight <action> --help' for help of specific action."
+        "See 'ProductifyConnect <action> --help' for help of specific action."
     );
     parser.addPositionalArgument("action", "Action to execute", "<action>");
     parser.parse(args);
@@ -184,7 +187,19 @@ GlobalCommandLineParser::ParseResult GlobalCommandLineParser::parse(const QStrin
         // for "quit" or "stream" positional arguments anywhere.
         for (int i = 0; i < posArgs.size(); i++) {
             QString action = posArgs.at(i).toLower();
-            if (action == "quit") {
+            if (action.startsWith("productify:")) {
+                // Opened from a productify://connect?code=... link. Invalid links still
+                // open the join screen, just without a code.
+                m_JoinCode = Productify::SessionApi::codeFromDeepLink(posArgs.at(i));
+                return JoinRequested;
+            } else if (action == "join") {
+                if (i + 1 < posArgs.size()) {
+                    m_JoinCode = Productify::SessionApi::normalizeCode(posArgs.at(i + 1));
+                }
+                return JoinRequested;
+            } else if (action == "register-url-handler") {
+                return RegisterUrlHandlerRequested;
+            } else if (action == "quit") {
                 return QuitRequested;
             } else if (action == "stream") {
                 return StreamRequested;

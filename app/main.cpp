@@ -54,6 +54,9 @@
 #include "streaming/session.h"
 #include "settings/streamingpreferences.h"
 #include "gui/sdlgamepadkeynavigation.h"
+#include "productify/branding.h"
+#include "productify/joinlauncher.h"
+#include "productify/urlhandler.h"
 
 #if defined(Q_OS_WIN32)
 #define IS_UNSPECIFIED_HANDLE(x) ((x) == INVALID_HANDLE_VALUE || (x) == NULL)
@@ -428,9 +431,11 @@ int main(int argc, char *argv[])
     // Set these here to allow us to use the default QSettings constructor.
     // These also ensure that our cache directory is named correctly. As such,
     // it is critical that these be called before Path::initialize().
-    QCoreApplication::setOrganizationName("Moonlight Game Streaming Project");
-    QCoreApplication::setOrganizationDomain("moonlight-stream.com");
-    QCoreApplication::setApplicationName("Moonlight");
+    // Productify Connect keeps its settings and pairings separate from any
+    // Moonlight installation on the same machine.
+    QCoreApplication::setOrganizationName(PFY_ORG_NAME);
+    QCoreApplication::setOrganizationDomain(PFY_ORG_DOMAIN);
+    QCoreApplication::setApplicationName(PFY_APP_NAME);
 
     if (QFile(QDir::currentPath() + "/portable.dat").exists()) {
         QSettings::setDefaultFormat(QSettings::IniFormat);
@@ -464,7 +469,7 @@ int main(int argc, char *argv[])
     if (IS_UNSPECIFIED_HANDLE(oldConErr))
 #endif
     {
-        s_LoggerFile = new QFile(tempDir.filePath(QString("Moonlight-%1.log").arg(QDateTime::currentSecsSinceEpoch())));
+        s_LoggerFile = new QFile(tempDir.filePath(QString("ProductifyConnect-%1.log").arg(QDateTime::currentSecsSinceEpoch())));
         if (s_LoggerFile->open(QIODevice::WriteOnly | QIODevice::Text)) {
             QTextStream(stderr) << "Redirecting log output to " << s_LoggerFile->fileName() << Qt::endl;
             s_LoggerStream.setDevice(s_LoggerFile);
@@ -497,7 +502,7 @@ int main(int argc, char *argv[])
 
 #ifdef LOG_TO_FILE
     // Prune the oldest existing logs if there are more than 10
-    QStringList existingLogNames = tempDir.entryList(QStringList("Moonlight-*.log"), QDir::NoFilter, QDir::SortFlag::Time);
+    QStringList existingLogNames = tempDir.entryList(QStringList("ProductifyConnect-*.log"), QDir::NoFilter, QDir::SortFlag::Time);
     for (int i = 10; i < existingLogNames.size(); i++) {
         qInfo() << "Removing old log file:" << existingLogNames.at(i);
         QFile(tempDir.filePath(existingLogNames.at(i))).remove();
@@ -805,6 +810,15 @@ int main(int argc, char *argv[])
 
     GlobalCommandLineParser parser;
     GlobalCommandLineParser::ParseResult commandLineParserResult = parser.parse(app.arguments());
+    if (commandLineParserResult == GlobalCommandLineParser::RegisterUrlHandlerRequested) {
+        QString error;
+        if (!Productify::registerUrlHandler(&error)) {
+            fprintf(stderr, "Failed to register " PFY_URL_SCHEME ":// links: %s\n", qPrintable(error));
+            return 1;
+        }
+        fprintf(stdout, "Registered " PFY_URL_SCHEME ":// links for this user\n");
+        return 0;
+    }
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::ListRequested:
         // Don't log to the console since it will jumble the command output
@@ -926,9 +940,9 @@ int main(int argc, char *argv[])
 #endif
 
     // This is necessary to show our icon correctly on Wayland
-    app.setDesktopFileName("com.moonlight_stream.Moonlight");
-    qputenv("SDL_VIDEO_WAYLAND_WMCLASS", "com.moonlight_stream.Moonlight");
-    qputenv("SDL_VIDEO_X11_WMCLASS", "com.moonlight_stream.Moonlight");
+    app.setDesktopFileName("com.productifynow.ProductifyConnect");
+    qputenv("SDL_VIDEO_WAYLAND_WMCLASS", "com.productifynow.ProductifyConnect");
+    qputenv("SDL_VIDEO_X11_WMCLASS", "com.productifynow.ProductifyConnect");
 
     // Register our C++ types for QML
     qmlRegisterType<ComputerModel>("ComputerModel", 1, 0, "ComputerModel");
@@ -989,8 +1003,17 @@ int main(int argc, char *argv[])
 
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::NormalStartRequested:
-        initialView = "qrc:/gui/PcView.qml";
-        break;
+    case GlobalCommandLineParser::JoinRequested:
+        {
+            // Productify Connect starts on the session-code screen. Upstream's host list
+            // (manual IPs and PINs) is only for development.
+            initialView = qEnvironmentVariableIsSet("PRODUCTIFY_CLASSIC_UI") ? "qrc:/gui/PcView.qml"
+                                                                            : "qrc:/gui/JoinView.qml";
+            auto joinLauncher = new Productify::JoinLauncher(parser.getJoinCode(), StreamingPreferences::get(), &app);
+            QObject::connect(&app, &QCoreApplication::aboutToQuit, joinLauncher, &Productify::JoinLauncher::finish);
+            engine.rootContext()->setContextProperty("joinLauncher", joinLauncher);
+            break;
+        }
     case GlobalCommandLineParser::StreamRequested:
         {
             initialView = "qrc:/gui/CliStartStreamSegue.qml";
@@ -1021,6 +1044,9 @@ int main(int argc, char *argv[])
             engine.rootContext()->setContextProperty("launcher", launcher);
             break;
         }
+    case GlobalCommandLineParser::RegisterUrlHandlerRequested:
+        Q_UNREACHABLE();
+        break;
     case GlobalCommandLineParser::ListRequested:
         {
             ListCommandLineParser listParser;
@@ -1034,7 +1060,8 @@ int main(int argc, char *argv[])
 
     if (hasGUI) {
         engine.rootContext()->setContextProperty("initialView", initialView);
-        engine.rootContext()->setContextProperty("runConfigChecks", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
+        engine.rootContext()->setContextProperty("runConfigChecks", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested ||
+                                                                       commandLineParserResult == GlobalCommandLineParser::JoinRequested);
 
         // Load the main.qml file
         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));

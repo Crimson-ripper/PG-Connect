@@ -1,14 +1,18 @@
 QT += core quick network quickcontrols2 svg
 CONFIG += c++17
 
+# Productify Connect: renamed binaries (upstream: moonlight / Moonlight)
 unix:!macx {
-    TARGET = moonlight
-} else {
+    TARGET = productify-connect
+} else:macx {
     # On macOS, this is the name displayed in the global menu bar
-    TARGET = Moonlight
+    TARGET = "Productify Connect"
+} else {
+    TARGET = ProductifyConnect
 }
 
 include(../globaldefs.pri)
+include(productify/productify.pri)
 
 # Precompile QML files to avoid writing qmlcache on portable versions.
 # Since this binds the app against the Qt runtime version, we will only
@@ -545,10 +549,11 @@ unix:!macx: {
     INSTALLS += target desktop icons appstream
 }
 win32 {
-    RC_ICONS = moonlight.ico
-    QMAKE_TARGET_COMPANY = Moonlight Game Streaming Project
-    QMAKE_TARGET_DESCRIPTION = Moonlight Game Streaming Client
-    QMAKE_TARGET_PRODUCT = Moonlight
+    RC_ICONS = productify.ico
+    QMAKE_TARGET_COMPANY = Productify
+    QMAKE_TARGET_DESCRIPTION = Productify Connect (based on Moonlight, GPLv3)
+    QMAKE_TARGET_PRODUCT = Productify Connect
+    QMAKE_TARGET_COPYRIGHT = Copyright (C) Moonlight Game Streaming Project and Productify. GPLv3.
 
     CONFIG -= embed_manifest_exe
     QMAKE_LFLAGS += /MANIFEST:embed /MANIFESTINPUT:$${PWD}/Moonlight.exe.manifest
