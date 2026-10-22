@@ -1,0 +1,85 @@
+---
+# Productify Connect: Windows x64 build (portable zip + MSI).
+# Mirrors upstream's build-win-mac.yml with the toolchain pinned to what upstream v6.2.0 uses.
+name: Productify Connect - Windows
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [productify]
+    tags: ['pfy-v*']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  QT_VERSION: 6.12.0
+
+jobs:
+  mock-backend-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 -I tools/mock-backend/test_mock_backend.py
+
+  windows-x64:
+    runs-on: windows-2025
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Download prebuilt dependencies
+        run: powershell ./setup-deps.ps1
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          cache: true
+          set-env: false
+          add-tools-to-path: false
+          tools: tools_qtcreator_gui        # provides jom.exe, as upstream does
+          version: ${{ env.QT_VERSION }}
+          arch: win64_msvc2022_64
+          aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e'
+
+      - name: Set version
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/pfy-v* ]]; then v="${GITHUB_REF#refs/tags/pfy-v}"; else v="$(cat app/version.txt).${GITHUB_RUN_NUMBER}"; fi
+          echo "CI_VERSION=$v" >> "$GITHUB_ENV"
+
+      - name: Build x64 (portable zip + MSI)
+        shell: cmd
+        run: |
+          set "PATH=%QT_PATH%;%PATH%"
+          scripts\build-arch.bat Release x64
+        env:
+          QT_PATH: ${{ runner.workspace }}\Qt\${{ env.QT_VERSION }}\msvc2022_64\bin
+          # Production API base comes from a repository variable; unset = local mock backend.
+          PFY_API_BASE: ${{ vars.PFY_API_BASE }}
+
+      - name: Upload portable build
+        uses: actions/upload-artifact@v6
+        with:
+          name: ProductifyConnect-Windows-x64-${{ env.CI_VERSION }}
+          path: build/deploy-x64-release/*
+          if-no-files-found: error
+
+      - name: Upload installer and portable zip
+        uses: actions/upload-artifact@v6
+        with:
+          name: ProductifyConnect-Windows-x64-installer-${{ env.CI_VERSION }}
+          path: |
+            build/build-x64-release/*.msi
+            build/installer-x64-release/*.zip
+          if-no-files-found: error
+
+      - name: Upload symbols
+        uses: actions/upload-artifact@v6
+        with:
+          name: zDevDbgSyms-Windows-x64-${{ env.CI_VERSION }}
+          path: build/symbols-x64-release/*.pdb
+          if-no-files-found: warn
