@@ -431,7 +431,7 @@ int main(int argc, char *argv[])
     // Set these here to allow us to use the default QSettings constructor.
     // These also ensure that our cache directory is named correctly. As such,
     // it is critical that these be called before Path::initialize().
-    // Productify Connect keeps its settings and pairings separate from any
+    // PG Connect keeps its settings and pairings separate from any
     // Moonlight installation on the same machine.
     QCoreApplication::setOrganizationName(PFY_ORG_NAME);
     QCoreApplication::setOrganizationDomain(PFY_ORG_DOMAIN);
@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
     if (IS_UNSPECIFIED_HANDLE(oldConErr))
 #endif
     {
-        s_LoggerFile = new QFile(tempDir.filePath(QString("ProductifyConnect-%1.log").arg(QDateTime::currentSecsSinceEpoch())));
+        s_LoggerFile = new QFile(tempDir.filePath(QString("PGConnect-%1.log").arg(QDateTime::currentSecsSinceEpoch())));
         if (s_LoggerFile->open(QIODevice::WriteOnly | QIODevice::Text)) {
             QTextStream(stderr) << "Redirecting log output to " << s_LoggerFile->fileName() << Qt::endl;
             s_LoggerStream.setDevice(s_LoggerFile);
@@ -502,7 +502,7 @@ int main(int argc, char *argv[])
 
 #ifdef LOG_TO_FILE
     // Prune the oldest existing logs if there are more than 10
-    QStringList existingLogNames = tempDir.entryList(QStringList("ProductifyConnect-*.log"), QDir::NoFilter, QDir::SortFlag::Time);
+    QStringList existingLogNames = tempDir.entryList(QStringList("PGConnect-*.log"), QDir::NoFilter, QDir::SortFlag::Time);
     for (int i = 10; i < existingLogNames.size(); i++) {
         qInfo() << "Removing old log file:" << existingLogNames.at(i);
         QFile(tempDir.filePath(existingLogNames.at(i))).remove();
@@ -936,13 +936,13 @@ int main(int argc, char *argv[])
 #ifndef Q_OS_DARWIN
     // Set the window icon except on macOS where we want to keep the
     // modified macOS 11 style rounded corner icon.
-    app.setWindowIcon(QIcon(":/res/moonlight.svg"));
+    app.setWindowIcon(QIcon(":/res/productify.png"));  // PG Connect icon
 #endif
 
     // This is necessary to show our icon correctly on Wayland
-    app.setDesktopFileName("com.productifynow.ProductifyConnect");
-    qputenv("SDL_VIDEO_WAYLAND_WMCLASS", "com.productifynow.ProductifyConnect");
-    qputenv("SDL_VIDEO_X11_WMCLASS", "com.productifynow.ProductifyConnect");
+    app.setDesktopFileName("com.productifynow.PGConnect");
+    qputenv("SDL_VIDEO_WAYLAND_WMCLASS", "com.productifynow.PGConnect");
+    qputenv("SDL_VIDEO_X11_WMCLASS", "com.productifynow.PGConnect");
 
     // Register our C++ types for QML
     qmlRegisterType<ComputerModel>("ComputerModel", 1, 0, "ComputerModel");
@@ -980,12 +980,16 @@ int main(int argc, char *argv[])
     // We require the Material theme
     QQuickStyle::setStyle("Material");
 
-    // Our icons are styled for a dark theme, so we do not allow the user to override this
-    qputenv("QT_QUICK_CONTROLS_MATERIAL_THEME", "Dark");
+    // PG Connect: Productify theme (same palette as Productify Node): paper background,
+    // ink text/controls/toolbar, lime reserved for the primary action and the brand mark.
+    // The toolbar stays dark (main.qml) because upstream's toolbar icons are white.
+    qputenv("QT_QUICK_CONTROLS_MATERIAL_THEME", "Light");
+    qputenv("QT_QUICK_CONTROLS_MATERIAL_BACKGROUND", "#F7F7F4");
+    qputenv("QT_QUICK_CONTROLS_MATERIAL_FOREGROUND", "#101112");
 
     // These are defaults that we allow the user to override
     if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_MATERIAL_ACCENT")) {
-        qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", "Purple");
+        qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", "#101112");
     }
     if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_MATERIAL_VARIANT")) {
         qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
@@ -994,7 +998,7 @@ int main(int argc, char *argv[])
         // Qt 6.9 began to use a different shade of Material.Indigo when we use a dark theme
         // (which is all the time). The new color looks washed out, so manually specify the
         // old primary color unless the user overrides it themselves.
-        qputenv("QT_QUICK_CONTROLS_MATERIAL_PRIMARY", "#3F51B5");
+        qputenv("QT_QUICK_CONTROLS_MATERIAL_PRIMARY", "#101112");
     }
 
     QQmlApplicationEngine engine;
@@ -1005,7 +1009,7 @@ int main(int argc, char *argv[])
     case GlobalCommandLineParser::NormalStartRequested:
     case GlobalCommandLineParser::JoinRequested:
         {
-            // Productify Connect starts on the session-code screen. Upstream's host list
+            // PG Connect starts on the session-code screen. Upstream's host list
             // (manual IPs and PINs) is only for development.
             initialView = qEnvironmentVariableIsSet("PRODUCTIFY_CLASSIC_UI") ? "qrc:/gui/PcView.qml"
                                                                             : "qrc:/gui/JoinView.qml";

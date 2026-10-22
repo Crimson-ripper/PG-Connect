@@ -1,4 +1,4 @@
-"""Mock Productify Gamezone session API for testing Productify Connect locally.
+"""Mock Productify Gamezone session API for testing PG Connect locally.
 
 Implements the contract in DESIGN.md ("Backend API contract") with no GPU rental:
 
@@ -13,7 +13,7 @@ Standard library only. Usage:
     py mock_backend.py --host-address 192.168.1.50 --sunshine-url https://192.168.1.50:47990 \
                        --sunshine-user admin             # password from SUNSHINE_PASS env var
 
-Then run:  ProductifyConnect.exe join TEST-1234   (or open productify://connect?code=TEST-1234)
+Then run:  PGConnect.exe join TEST-1234   (or open productify://connect?code=TEST-1234)
 Built-in codes:
     TEST1234  direct connection to --host-address (works end to end with a real Sunshine)
     WGTEST12  WireGuard session with placeholder keys (exercises the tunnel path; will not connect)
@@ -114,7 +114,7 @@ def submit_pin_to_sunshine(code, pin, device_name):
     if ARGS.sunshine_ssh:
         # Production-like path: run curl on the VM itself; Sunshine credentials never leave the VM.
         import subprocess
-        name = re.sub(r"[^A-Za-z0-9 _-]", "", device_name or "Productify Connect")[:40] or "Productify Connect"
+        name = re.sub(r"[^A-Za-z0-9 _-]", "", device_name or "PG Connect")[:40] or "PG Connect"
         remote = ("set -a; . /root/gamezone-secrets; curl -sk -u \"$SUNSHINE_USER:$SUNSHINE_PASS\" "
                   "-H 'Content-Type: application/json' "
                   f"-d '{{\"pin\":\"{pin}\",\"name\":\"{name}\"}}' https://localhost:47990/api/pin")
@@ -138,7 +138,7 @@ def submit_pin_to_sunshine(code, pin, device_name):
     ctx = ssl.create_default_context()
     ctx.check_hostname = False          # Sunshine uses a self-signed certificate
     ctx.verify_mode = ssl.CERT_NONE
-    payload = json.dumps({"pin": pin, "name": device_name or "Productify Connect"}).encode()
+    payload = json.dumps({"pin": pin, "name": device_name or "PG Connect"}).encode()
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         req = urllib.request.Request(ARGS.sunshine_url.rstrip("/") + "/api/pin", data=payload, method="POST",

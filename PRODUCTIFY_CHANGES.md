@@ -18,11 +18,11 @@ git history record what was modified and when. Design: `docs/DESIGN.md`.
 
 | File | Change |
 |---|---|
-| `app/app.pro` | target names `ProductifyConnect` / `productify-connect` / `Productify Connect`; Windows version-info and icon; includes `productify/productify.pri` |
+| `app/app.pro` | target names `PGConnect` / `pg-connect` / `PG Connect`; Windows version-info and icon; includes `productify/productify.pri` |
 | `app/main.cpp` | organisation/app names; desktop file id; join view as start screen; `join`, deep-link and `register-url-handler` handling |
 | `app/cli/commandlineparser.*` | `join`, `productify://` and `register-url-handler` actions |
 | `app/qml.qrc` | adds `JoinView.qml` |
-| `app/gui/main.qml`, `PcView.qml`, `SettingsView.qml`, `StreamSegue.qml` | user-visible "Moonlight" → "Productify Connect"; help/update links → productifynow.com; Discord button hidden |
+| `app/gui/main.qml`, `PcView.qml`, `SettingsView.qml`, `StreamSegue.qml` | user-visible "Moonlight" → "PG Connect"; help/update links → productifynow.com; Discord button hidden |
 | `app/backend/autoupdatechecker.cpp` | upstream update check disabled |
 | `app/Moonlight.exe.manifest` | description |
 | `wix/Moonlight/Product.wxs`, `wix/MoonlightSetup/Bundle.wxs` | product name, manufacturer, install folder, registry keys, new UpgradeCodes, icon, `productify://` handler |

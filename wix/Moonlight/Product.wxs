@@ -1,9 +1,9 @@
-﻿<?define ShortName = "Productify Connect" ?>
-<?define FullName = "Productify Connect" ?>
+﻿<?define ShortName = "PG Connect" ?>
+<?define FullName = "PG Connect" ?>
 
 <?define ShortcutName = "$(var.ShortName)" ?>
 <?define ShortcutDesc = "Play your Productify Gamezone session" ?>
-<?define InstallFolder = "Productify Connect" ?>
+<?define InstallFolder = "PG Connect" ?>
 
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:fire="http://wixtoolset.org/schemas/v4/wxs/firewall" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
@@ -87,7 +87,7 @@
         <File Id="MoonlightExe"
               KeyPath="yes"
               Checksum="yes"
-              Source="$(var.BuildDir)\app\$(var.Configuration)\ProductifyConnect.exe">
+              Source="$(var.BuildDir)\app\$(var.Configuration)\PGConnect.exe">
           <fire:FirewallException Id="MoonlightFirewallException"
                                   Scope="any"
                                   IgnoreFailure="yes"
@@ -96,10 +96,10 @@
       </Component>
     </DirectoryRef>
 
-    <!-- Productify Connect: productify://connect?code=... opens the join screen -->
+    <!-- PG Connect: productify://connect?code=... opens the join screen -->
     <Component Id="ProductifyUrlProtocol" Directory="INSTALLFOLDER">
       <RegistryKey Root="HKCR" Key="productify">
-        <RegistryValue Type="string" Value="URL:Productify Connect Protocol" KeyPath="yes" />
+        <RegistryValue Type="string" Value="URL:PG Connect Protocol" KeyPath="yes" />
         <RegistryValue Name="URL Protocol" Type="string" Value="" />
         <RegistryValue Key="DefaultIcon" Type="string" Value="&quot;[#MoonlightExe]&quot;,0" />
         <RegistryValue Key="shell\open\command" Type="string" Value="&quot;[#MoonlightExe]&quot; &quot;%1&quot;" />
@@ -110,7 +110,7 @@
       <Files Include="$(var.DeployDir)\**" />
     </ComponentGroup>
 
-    <Feature Id="ProductFeature" Title="Productify Connect" Level="1" ConfigurableDirectory="INSTALLFOLDER">
+    <Feature Id="ProductFeature" Title="PG Connect" Level="1" ConfigurableDirectory="INSTALLFOLDER">
       <ComponentRef Id="Moonlight" />
       <ComponentRef Id="MoonlightShortcuts" />
       <ComponentRef Id="ProductifyUrlProtocol" />

@@ -1,6 +1,6 @@
-# Productify Connect
+# PG Connect
 
-Productify Connect is the game-streaming client for Productify Gamezone sessions (pre-pilot,
+PG Connect is the game-streaming client for Productify Gamezone sessions (pre-pilot,
 not publicly available yet). Players enter a session code and are connected to their rented
 machine automatically. It is a modified version of Moonlight PC (below), released under the
 GNU GPL v3; it is not endorsed by or affiliated with the Moonlight project.

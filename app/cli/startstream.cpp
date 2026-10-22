@@ -85,7 +85,7 @@ public:
                     m_TimeoutTimer->start(APP_SEEK_TIMEOUT);
                     emit q->searchingApp();
 
-                    // Productify Connect: the app list may already be cached, in which
+                    // PG Connect: the app list may already be cached, in which
                     // case no further update arrives. Check it right away.
                     {
                         NvComputer* computer = event.computer;

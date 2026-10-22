@@ -14,7 +14,7 @@ public:
         QuitRequested,
         PairRequested,
         ListRequested,
-        // Productify Connect
+        // PG Connect
         JoinRequested,
         RegisterUrlHandlerRequested,
     };

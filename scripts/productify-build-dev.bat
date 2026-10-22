@@ -1,5 +1,5 @@
 @echo off
-rem Productify Connect: local x64 development build (no MSI, no signing, no 7-Zip).
+rem PG Connect: local x64 development build (no MSI, no signing, no 7-Zip).
 rem Release builds use scripts\build-arch.bat (see .github\workflows\productify-windows.yml).
 rem
 rem Usage: scripts\productify-build-dev.bat [debug|release] [path\to\Qt\6.12.0\msvc2022_64]
@@ -55,16 +55,16 @@ if exist "%SETTINGS_BACKUP%" move "%SETTINGS_BACKUP%" "%DEPLOY_FOLDER%\Productif
 copy "%SOURCE_ROOT%\libs\windows\lib\x64\*.dll" "%DEPLOY_FOLDER%" >nul
 copy "%BUILD_FOLDER%\AntiHooking\%BUILD_CONFIG%\AntiHooking.dll" "%DEPLOY_FOLDER%" >nul
 copy "%SOURCE_ROOT%\app\SDL_GameControllerDB\gamecontrollerdb.txt" "%DEPLOY_FOLDER%" >nul
-copy "%BUILD_FOLDER%\app\%BUILD_CONFIG%\ProductifyConnect.exe" "%DEPLOY_FOLDER%" >nul
+copy "%BUILD_FOLDER%\app\%BUILD_CONFIG%\PGConnect.exe" "%DEPLOY_FOLDER%" >nul
 copy "%SOURCE_ROOT%\LICENSE" "%DEPLOY_FOLDER%\LICENSE.txt" >nul
 copy "%SOURCE_ROOT%\NOTICE.md" "%DEPLOY_FOLDER%\NOTICE.md" >nul
 
-windeployqt.exe --dir "%DEPLOY_FOLDER%" --%BUILD_CONFIG% --qmldir "%SOURCE_ROOT%\app\gui" --no-opengl-sw --no-compiler-runtime --no-sql --no-system-d3d-compiler --no-system-dxc-compiler --skip-plugin-types qmltooling,generic --no-ffmpeg "%DEPLOY_FOLDER%\ProductifyConnect.exe"
+windeployqt.exe --dir "%DEPLOY_FOLDER%" --%BUILD_CONFIG% --qmldir "%SOURCE_ROOT%\app\gui" --no-opengl-sw --no-compiler-runtime --no-sql --no-system-d3d-compiler --no-system-dxc-compiler --skip-plugin-types qmltooling,generic --no-ffmpeg "%DEPLOY_FOLDER%\PGConnect.exe"
 if !ERRORLEVEL! NEQ 0 exit /b 1
 
 for /f "usebackq delims=" %%i in (`%VSWHERE% -latest -products * -find VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT`) do set VC_REDIST_DLL_PATH=%%i
 if defined VC_REDIST_DLL_PATH copy "%VC_REDIST_DLL_PATH%\*.dll" "%DEPLOY_FOLDER%" >nul
 
 echo. > "%DEPLOY_FOLDER%\portable.dat"
-echo Dev build ready: %DEPLOY_FOLDER%\ProductifyConnect.exe
+echo Dev build ready: %DEPLOY_FOLDER%\PGConnect.exe
 exit /b 0

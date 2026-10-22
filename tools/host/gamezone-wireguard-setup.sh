@@ -1,5 +1,5 @@
 #!/bin/bash
-# Productify Gamezone: host side of the Productify Connect WireGuard tunnel.
+# Productify Gamezone: host side of the PG Connect WireGuard tunnel.
 # Reference for backend/gamezone/vast_template/gamezone_kiosk_onstart.sh (run as root, after Sunshine is set up).
 #
 # Why: Vast.ai maps ports randomly, but Moonlight/Sunshine need fixed TCP+UDP ports. The template maps

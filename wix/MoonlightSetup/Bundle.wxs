@@ -11,7 +11,7 @@
 
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
-  <Bundle Name="Productify Connect"
+  <Bundle Name="PG Connect"
           Version="!(bind.PackageVersion.Moonlight_x64)"
           Manufacturer="Productify"
           UpgradeCode="a77823a1-871f-4558-a511-dc65b9ac1b2b"
@@ -20,10 +20,10 @@
           DisableModify="yes"
           IconSourceFile="..\..\app\productify.ico">
 
-    <bal:Condition Message="This version of Productify Connect requires Windows 10 or later." Condition="VersionNT &gt;= v10.0" />
-    <bal:Condition Message="This version of Productify Connect requires a 64-bit version of Windows." Condition="NativeMachine &lt;&gt; 332" />
+    <bal:Condition Message="This version of PG Connect requires Windows 10 or later." Condition="VersionNT &gt;= v10.0" />
+    <bal:Condition Message="This version of PG Connect requires a 64-bit version of Windows." Condition="NativeMachine &lt;&gt; 332" />
 
-    <Variable Name="InstallFolder" Type="formatted" Value="[ProgramFiles6432Folder]Productify Connect" />
+    <Variable Name="InstallFolder" Type="formatted" Value="[ProgramFiles6432Folder]PG Connect" />
 
     <!-- Define "Add desktop shortcut" -checkbox's state by defining a variable
          which has same name as the checkbox has. Value 1 means that checkbox
@@ -49,7 +49,7 @@
       <bal:WixStandardBootstrapperApplication ShowVersion="yes"
                                               LicenseFile="license.rtf"
                                               LogoFile="..\..\app\moonlight_wix.png"
-                                              LaunchTarget="[InstallFolder]\ProductifyConnect.exe"
+                                              LaunchTarget="[InstallFolder]\PGConnect.exe"
                                               ThemeFile="RtfTheme.xml"
                                               Theme="rtfLicense" />
       <Payload Name="Moonlight.ico" SourceFile="..\..\app\productify.ico" Compressed="yes" />

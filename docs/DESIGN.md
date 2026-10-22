@@ -1,10 +1,10 @@
-# Productify Connect — design
+# PG Connect — design
 
 Status: **draft / pre-pilot** (2026-10-22). Nothing here is tested against a rented GPU yet.
 Gamezone stays unadvertised on productifynow.com until the streaming tests in
 `backend/gamezone/STREAMING_TEST_PLAN.md` pass (CLAUDE.md, honesty rules).
 
-Productify Connect is Productify's game-streaming client. It is a fork of **moonlight-qt**
+PG Connect is Productify's game-streaming client. It is a fork of **moonlight-qt**
 (GPLv3) with one new feature: a player types a **Productify session code** (or clicks a
 `productify://connect?code=…` link) and the client does everything else — finds the rented
 machine, pairs with it automatically, optionally opens a WireGuard tunnel, and starts the one app
@@ -13,7 +13,7 @@ the session allows (Steam Big Picture or Epic via Heroic). No IP addresses, no P
 ```
  Player PC                                   Productify backend               Rented VM (Vast / E2E)
  ┌──────────────────────┐  1 POST connect    ┌──────────────────┐            ┌────────────────────────┐
- │ Productify Connect   │ ─────────────────▶ │ session API      │  SSH/agent │ kiosk user (no desktop)│
+ │ PG Connect   │ ─────────────────▶ │ session API      │  SSH/agent │ kiosk user (no desktop)│
  │  JoinView (code)     │ ◀───────────────── │  issues PIN,     │ ─────────▶ │ Sunshine (apps: Steam  │
  │  JoinLauncher        │  host, PIN, app,   │  WG peer, app    │  /api/pin  │   / Heroic only)       │
  │  SessionApi          │  network config    │                  │  wg peer   │ WireGuard wg0 (option) │
@@ -63,9 +63,9 @@ Not legal advice: have someone review NOTICE.md and the store listings before th
 
 | Piece | File(s) | What it does |
 |---|---|---|
-| Branding | `app/productify/branding.h`, `app.pro`, `main.cpp`, QML strings, `productify.ico`, WiX | App/org name "Productify Connect"/"Productify" (settings and pairings are separate from any Moonlight install), exe `ProductifyConnect.exe`, new MSI/bundle UpgradeCodes, upstream update checker and Discord link disabled. |
+| Branding | `app/productify/branding.h`, `app.pro`, `main.cpp`, QML strings, `productify.ico`, WiX | App/org name "PG Connect"/"Productify" (settings and pairings are separate from any Moonlight install), exe `PGConnect.exe`, new MSI/bundle UpgradeCodes, upstream update checker and Discord link disabled. |
 | Join screen | `app/gui/JoinView.qml` | Default start screen: one code field, Join button, progress text, errors. Upstream's host list (`PcView`) only appears with `PRODUCTIFY_CLASSIC_UI=1` (developers). |
-| Deep link / CLI | `cli/commandlineparser.*`, `main.cpp`, `urlhandler.*`, `Product.wxs` | `ProductifyConnect.exe join <code>`, `ProductifyConnect.exe productify://connect?code=…`, `register-url-handler` (portable builds, HKCU). The MSI registers `productify://` in HKCR. A link can only carry the code — never a server address. |
+| Deep link / CLI | `cli/commandlineparser.*`, `main.cpp`, `urlhandler.*`, `Product.wxs` | `PGConnect.exe join <code>`, `PGConnect.exe productify://connect?code=…`, `register-url-handler` (portable builds, HKCU). The MSI registers `productify://` in HKCR. A link can only carry the code — never a server address. |
 | Session API client | `app/productify/sessionapi.*` | Calls the backend (§4); validates the response (exactly one app, sane PIN, WG fields, no `/0` routes). HTTPS required except for a backend on localhost. API base: build-time `PFY_API_BASE` (CI repository variable) or env `PRODUCTIFY_API_BASE`; dev default `http://127.0.0.1:8765` (mock). |
 | Join flow | `app/productify/joinlauncher.*` | State machine: fetch session → (tunnel up) → `ComputerSeeker` finds Sunshine → if not paired, `ComputerManager::pairHost(pin)` and 1.5 s later `POST …/pairing` so the backend submits the PIN to Sunshine → reuse upstream `CliStartStream::Launcher` to start the session's only app → `StreamSegue` with `quitAfter`. Sends `stream_started` / `stream_ended` / `client_error` events. |
 | WireGuard | `app/productify/wgtunnel.*` | Per-session X25519 key generated on the device (OpenSSL); only the public key goes to the backend. Phase 1 (Windows): writes a split-tunnel config and runs the installed WireGuard for Windows `wireguard.exe /installtunnelservice` (UAC prompt), removes it with `/uninstalltunnelservice` at exit and deletes the config (it holds the private key). |
@@ -102,7 +102,7 @@ from the same WG key / device); rate-limit by IP and by code (e.g. 10/min); neve
 Request:
 ```json
 {
-  "client": {"name": "Productify Connect", "version": "6.2.0", "platform": "windows-x86_64", "device_name": "LENOVO-PC"},
+  "client": {"name": "PG Connect", "version": "6.2.0", "platform": "windows-x86_64", "device_name": "LENOVO-PC"},
   "supports": {"wireguard": true},
   "wireguard_public_key": "base64 X25519 public key (only when supports.wireguard)"
 }
@@ -174,7 +174,7 @@ ports firewalled to wg0 on the host.
 | Phase | Windows mechanism | Player experience | Status |
 |---|---|---|---|
 | **1 (now)** | Installed WireGuard for Windows; one elevated `cmd` step copies the config to `%ProgramData%\Productify\tunnels` (SYSTEM/Admins only) and runs `wireguard.exe /installtunnelservice` | Needs WireGuard installed; one UAC prompt to connect and one at exit | Implemented; **worked against a real Vast VM on 2026-10-22** |
-| **2** | Ship `tunnel.dll` + `wireguard.dll` (wireguard-windows *embeddable-dll-service* / wireguard-nt) and a small **Productify Connect Tunnel** Windows service installed by the MSI (LocalSystem). The app talks to it over a named pipe with an ACL for interactive users; the service only accepts configs that are split-tunnel to `10.77.0.0/16`. | No extra install, no UAC per session | Design only |
+| **2** | Ship `tunnel.dll` + `wireguard.dll` (wireguard-windows *embeddable-dll-service* / wireguard-nt) and a small **PG Connect Tunnel** Windows service installed by the MSI (LocalSystem). The app talks to it over a named pipe with an ACL for interactive users; the service only accepts configs that are split-tunnel to `10.77.0.0/16`. | No extra install, no UAC per session | Design only |
 | **2b (alt)** | Userspace WireGuard + userspace TCP/IP (wireguard-go + gVisor netstack, as in *wireproxy*) forwarding `127.0.0.1:{Sunshine ports}` into the tunnel | No admin rights at all; cross-platform (also macOS/Linux/Android) | Design only; needs latency/throughput test (video is ~20–50 Mbit/s UDP) and handling of local port clashes |
 | macOS / Linux | Network Extension (macOS) / `wg-quick` via pkexec or 2b (Linux) | — | Not started (client says "not supported on this platform") |
 | Android | `GoBackend` from wireguard-android inside the moonlight-android fork (VpnService) | One VPN consent prompt | Not started |
@@ -203,13 +203,13 @@ Steps: see `client/BUILDING-PRODUCTIFY.md`. CI: `client/.github/workflows/produc
 | **0 — done here** | Fork at v6.2.0, rebrand, session-code flow, mock backend, WG phase-1 code, Windows build + CI | Client builds; join flow passes against the mock (§8) |
 | **1 — Windows pilot (internal)** | Implement §4 in `backend/server.py` + `backend/gamezone/`; WG host script into the kiosk onstart; publish the source repo; code-signing cert; test T-K2 on one Vast VM and one E2E VM (needs paid rentals — ask first) | A tester goes from code to Steam Big Picture with no manual steps; 1080p60, input works; X-tests (escape attempts) pass |
 | **2 — tunnel without friction** | WG phase 2 or 2b; reconnect after network drop; Productify update feed; crash reporting opt-in | No UAC/WireGuard install needed; updates delivered |
-| **3 — macOS + Linux** | Rebrand Info.plist/.desktop/AppImage/Flatpak id `com.productifynow.ProductifyConnect`, icons, `productify://` handlers, tunnel per §5 | Same join flow on both |
+| **3 — macOS + Linux** | Rebrand Info.plist/.desktop/AppImage/Flatpak id `com.productifynow.PGConnect`, icons, `productify://` handlers, tunnel per §5 | Same join flow on both |
 | **4 — Android** | Fork moonlight-android, same contract, VpnService tunnel, Play listing | Same join flow on Android |
 
 ## 8. Testing
 
 - `py -I tools/mock-backend/test_mock_backend.py` — contract tests of the mock (run in CI).
-- Manual (no GPU needed): start the mock, run `ProductifyConnect.exe join TEST-1234` →
+- Manual (no GPU needed): start the mock, run `PGConnect.exe join TEST-1234` →
   error "did not answer" after the seek timeout (no Sunshine at 127.0.0.1) proves the code →
   API → seek path; `BOOTING1`/`EXPIRED1`/`NOPE0000` show the 409/410/404 messages; `WGTEST12`
   exercises the tunnel path (UAC prompt / "install WireGuard" message).

@@ -1,7 +1,7 @@
 ---
-# Productify Connect: Windows x64 build (portable zip + MSI).
+# PG Connect: Windows x64 build (portable zip + MSI).
 # Mirrors upstream's build-win-mac.yml with the toolchain pinned to what upstream v6.2.0 uses.
-name: Productify Connect - Windows
+name: PG Connect - Windows
 permissions:
   contents: read
 
@@ -64,14 +64,14 @@ jobs:
       - name: Upload portable build
         uses: actions/upload-artifact@v6
         with:
-          name: ProductifyConnect-Windows-x64-${{ env.CI_VERSION }}
+          name: PGConnect-Windows-x64-${{ env.CI_VERSION }}
           path: build/deploy-x64-release/*
           if-no-files-found: error
 
       - name: Upload installer and portable zip
         uses: actions/upload-artifact@v6
         with:
-          name: ProductifyConnect-Windows-x64-installer-${{ env.CI_VERSION }}
+          name: PGConnect-Windows-x64-installer-${{ env.CI_VERSION }}
           path: |
             build/build-x64-release/*.msi
             build/installer-x64-release/*.zip

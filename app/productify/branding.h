@@ -1,11 +1,11 @@
-// Productify Connect branding and build-time settings.
+// PG Connect branding and build-time settings.
 //
-// Productify Connect is a modified version of Moonlight (https://moonlight-stream.org),
+// PG Connect is a modified version of Moonlight (https://moonlight-stream.org),
 // distributed under the GNU GPL v3. "Moonlight" is a trademark of its authors; this
 // product is not endorsed by or affiliated with the Moonlight Game Streaming Project.
 #pragma once
 
-#define PFY_APP_NAME        "Productify Connect"
+#define PFY_APP_NAME        "PG Connect"
 #define PFY_ORG_NAME        "Productify"
 #define PFY_ORG_DOMAIN      "productifynow.com"
 #define PFY_URL_SCHEME      "productify"

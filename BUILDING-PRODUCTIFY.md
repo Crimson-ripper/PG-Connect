@@ -1,4 +1,4 @@
-# Building Productify Connect (Windows x64)
+# Building PG Connect (Windows x64)
 
 Tested 2026-10-22 on Windows 10 22H2 with the toolchain below. CI does the same in
 `.github/workflows/productify-windows.yml`.
@@ -25,7 +25,7 @@ py -m venv ..\.toolchain\venv
 ..\.toolchain\venv\Scripts\pip install "git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e"
 ..\.toolchain\venv\Scripts\aqt install-qt windows desktop 6.12.0 win64_msvc2022_64 --outputdir ..\.toolchain\Qt
 
-rem Development build -> build\dev-deploy-x64-release\ProductifyConnect.exe (portable)
+rem Development build -> build\dev-deploy-x64-release\PGConnect.exe (portable)
 scripts\productify-build-dev.bat release
 
 rem Release build (portable zip + MSI), from a shell with Qt's bin on PATH and 7z available:
@@ -41,7 +41,7 @@ Without `PFY_API_BASE` the client talks to the local mock backend at `http://127
 
 ```bat
 py -I tools\mock-backend\mock_backend.py
-build\dev-deploy-x64-release\ProductifyConnect.exe join TEST-1234
+build\dev-deploy-x64-release\PGConnect.exe join TEST-1234
 ```
 
 Test codes: `TEST1234` (direct), `WGTEST12` (WireGuard path), `BOOTING1` (409), `EXPIRED1` (410),

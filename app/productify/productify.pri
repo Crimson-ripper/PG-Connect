@@ -1,4 +1,4 @@
-# Productify Connect additions, kept out of upstream's app.pro as far as possible.
+# PG Connect additions, kept out of upstream's app.pro as far as possible.
 SOURCES += \
     $$PWD/sessionapi.cpp \
     $$PWD/wgtunnel.cpp \

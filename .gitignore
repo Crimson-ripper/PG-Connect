@@ -8,5 +8,5 @@ libs/
 config.tests/*/.qmake.stash
 config.tests/*/Makefile
 
-# Productify Connect
+# PG Connect
 build-dev*.log

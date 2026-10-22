@@ -1,14 +1,14 @@
 QT += core quick network quickcontrols2 svg
 CONFIG += c++17
 
-# Productify Connect: renamed binaries (upstream: moonlight / Moonlight)
+# PG Connect: renamed binaries (upstream: moonlight / Moonlight)
 unix:!macx {
-    TARGET = productify-connect
+    TARGET = pg-connect
 } else:macx {
     # On macOS, this is the name displayed in the global menu bar
-    TARGET = "Productify Connect"
+    TARGET = "PG Connect"
 } else {
-    TARGET = ProductifyConnect
+    TARGET = PGConnect
 }
 
 include(../globaldefs.pri)
@@ -551,8 +551,8 @@ unix:!macx: {
 win32 {
     RC_ICONS = productify.ico
     QMAKE_TARGET_COMPANY = Productify
-    QMAKE_TARGET_DESCRIPTION = Productify Connect (based on Moonlight, GPLv3)
-    QMAKE_TARGET_PRODUCT = Productify Connect
+    QMAKE_TARGET_DESCRIPTION = PG Connect (based on Moonlight, GPLv3)
+    QMAKE_TARGET_PRODUCT = PG Connect
     QMAKE_TARGET_COPYRIGHT = Copyright (C) Moonlight Game Streaming Project and Productify. GPLv3.
 
     CONFIG -= embed_manifest_exe

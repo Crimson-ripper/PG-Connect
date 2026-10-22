@@ -34,7 +34,7 @@ void AutoUpdateChecker::start()
         return;
     }
 
-    // Productify Connect: upstream's update feed points at Moonlight releases.
+    // PG Connect: upstream's update feed points at Moonlight releases.
     // Disabled until Productify publishes its own feed (see DESIGN.md, phase 1).
     if (true) {
         return;

@@ -88,7 +88,7 @@ QNetworkReply* SessionApi::post(const QString& code, const QString& action, cons
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setHeader(QNetworkRequest::UserAgentHeader,
-                      QString("ProductifyConnect/%1 (%2)").arg(QCoreApplication::applicationVersion(),
+                      QString("PGConnect/%1 (%2)").arg(QCoreApplication::applicationVersion(),
                                                               QSysInfo::prettyProductName()));
     request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
     return m_Nam->post(request, body);

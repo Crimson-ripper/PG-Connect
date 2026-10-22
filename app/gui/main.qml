@@ -27,9 +27,7 @@ ApplicationWindow {
         // Override the background color to Material 2 colors for Qt 6.5+
         // in order to improve contrast between GFE's placeholder box art
         // and the background of the app grid.
-        if (SystemProperties.usesMaterial3Theme) {
-            Material.background = "#303030"
-        }
+        // PG Connect: keep the Productify paper background (set in main.cpp) instead.
 
         SdlGamepadKeyNavigation.enable()
     }
@@ -238,6 +236,10 @@ ApplicationWindow {
         height: 60
         anchors.topMargin: 5
         anchors.bottomMargin: 5
+        // PG Connect: ink bar like Productify Node; dark theme keeps the white icons readable
+        Material.theme: Material.Dark
+        Material.background: "#101112"
+        Material.foreground: "#F6F7F1"
 
         Label {
             id: titleLabel
@@ -269,6 +271,27 @@ ApplicationWindow {
                 }
             }
 
+            // PG Connect brand mark (lime square with "P"), as in Productify Node
+            Rectangle {
+                visible: stackView.depth <= 1
+                width: 28
+                height: 28
+                color: "#C8F04C"
+                Label {
+                    anchors.centerIn: parent
+                    text: "P"
+                    color: "#101112"
+                    font.bold: true
+                    font.pointSize: 13
+                }
+            }
+            Label {
+                visible: stackView.depth <= 1
+                text: "PG Connect"
+                font.bold: true
+                font.pointSize: 13
+            }
+
             // This label will appear when the window gets too small and
             // we need to ensure the toolbar controls don't collide
             Label {
@@ -296,7 +319,9 @@ ApplicationWindow {
 
             NavigableToolButton {
                 id: discordButton
-                visible: SystemProperties.hasBrowser &&
+                // PG Connect: upstream's community link is not our support channel
+                visible: false &&
+                         SystemProperties.hasBrowser &&
                          stackView.currentItem instanceof SettingsView
 
                 iconSource: "qrc:/res/discord.svg"
@@ -363,7 +388,7 @@ ApplicationWindow {
 
                 function updateAvailable(version, url)
                 {
-                    ToolTip.text = qsTr("Update available for Productify Connect: Version %1").arg(version)
+                    ToolTip.text = qsTr("Update available for PG Connect: Version %1").arg(version)
                     updateButton.browserUrl = url
                     updateButton.visible = true
                 }
@@ -448,7 +473,7 @@ ApplicationWindow {
 
     ErrorMessageDialog {
         id: noHwDecoderDialog
-        text: qsTr("No functioning hardware accelerated video decoder was detected by Productify Connect. " +
+        text: qsTr("No functioning hardware accelerated video decoder was detected by PG Connect. " +
                    "Your streaming performance may be severely degraded in this configuration.")
         helpText: qsTr("Click the Help button for more information on solving this problem.")
         helpUrl: "https://github.com/moonlight-stream/moonlight-docs/wiki/Fixing-Hardware-Decoding-Problems"
@@ -465,7 +490,7 @@ ApplicationWindow {
     NavigableMessageDialog {
         id: wow64Dialog
         standardButtons: Dialog.Ok | Dialog.Cancel
-        text: qsTr("This version of Productify Connect isn't optimized for your PC. Please download the '%1' version of Productify Connect for the best streaming performance.").arg(SystemProperties.friendlyNativeArchName)
+        text: qsTr("This version of PG Connect isn't optimized for your PC. Please download the '%1' version of PG Connect for the best streaming performance.").arg(SystemProperties.friendlyNativeArchName)
         onAccepted: {
             Qt.openUrlExternally("https://www.productifynow.com/");
         }
@@ -474,7 +499,7 @@ ApplicationWindow {
     ErrorMessageDialog {
         id: unmappedGamepadDialog
         property string unmappedGamepads : ""
-        text: qsTr("Productify Connect detected gamepads without a mapping:") + "\n" + unmappedGamepads
+        text: qsTr("PG Connect detected gamepads without a mapping:") + "\n" + unmappedGamepads
         helpTextSeparator: "\n\n"
         helpText: qsTr("Click the Help button for information on how to map your gamepads.")
         helpUrl: "https://github.com/moonlight-stream/moonlight-docs/wiki/Gamepad-Mapping"
