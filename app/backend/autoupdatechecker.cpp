@@ -34,6 +34,12 @@ void AutoUpdateChecker::start()
         return;
     }
 
+    // Productify Connect: upstream's update feed points at Moonlight releases.
+    // Disabled until Productify publishes its own feed (see DESIGN.md, phase 1).
+    if (true) {
+        return;
+    }
+
 #if defined(Q_OS_WIN32) || defined(Q_OS_DARWIN) || defined(STEAM_LINK) || defined(APP_IMAGE) // Only run update checker on platforms without auto-update
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0) && QT_VERSION < QT_VERSION_CHECK(5, 15, 1) && !defined(QT_NO_BEARERMANAGEMENT)
     // HACK: Set network accessibility to work around QTBUG-80947 (introduced in Qt 5.14.0 and fixed in Qt 5.15.1)
