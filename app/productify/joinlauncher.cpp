@@ -227,7 +227,7 @@ void JoinLauncher::onComputerFound(NvComputer* computer)
     });
 }
 
-void JoinLauncher::onPairingCompleted(NvComputer*, QString error)
+void JoinLauncher::onPairingCompleted(NvComputer* computer, QString error)
 {
     if (m_State != StatePairing) {
         return;
@@ -236,7 +236,28 @@ void JoinLauncher::onPairingCompleted(NvComputer*, QString error)
         fail(tr("Pairing failed: %1").arg(error));
         return;
     }
-    launchApp();
+
+    // The host's paired state is only refreshed by the next poll; the stream launcher
+    // refuses an unpaired host, so wait for that poll (or give it 15 s anyway).
+    if (computer->pairState == NvComputer::PS_PAIRED) {
+        launchApp();
+        return;
+    }
+    auto launched = std::make_shared<bool>(false);
+    auto launchOnce = [this, launched]() {
+        if (!*launched && m_State == StatePairing) {
+            *launched = true;
+            launchApp();
+        }
+    };
+    connect(m_ComputerManager, &ComputerManager::computerStateChanged, this,
+            [computer, launchOnce](NvComputer* changed) {
+        if (changed == computer && changed->pairState == NvComputer::PS_PAIRED) {
+            launchOnce();
+        }
+    });
+    QTimer::singleShot(15000, this, launchOnce);
+    m_ComputerManager->startPolling();
 }
 
 void JoinLauncher::launchApp()

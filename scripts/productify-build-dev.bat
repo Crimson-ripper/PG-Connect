@@ -45,8 +45,13 @@ if !ERRORLEVEL! NEQ 0 (popd & exit /b 1)
 if !ERRORLEVEL! NEQ 0 (popd & echo Build failed & exit /b 1)
 popd
 
+rem Keep the portable settings (pairing identity, stream settings) across rebuilds
+set SETTINGS_BACKUP=%SOURCE_ROOT%\build\dev-settings-backup
+if exist "%SETTINGS_BACKUP%" rmdir /s /q "%SETTINGS_BACKUP%"
+if exist "%DEPLOY_FOLDER%\Productify" move "%DEPLOY_FOLDER%\Productify" "%SETTINGS_BACKUP%" >nul
 if exist "%DEPLOY_FOLDER%" rmdir /s /q "%DEPLOY_FOLDER%"
 mkdir "%DEPLOY_FOLDER%"
+if exist "%SETTINGS_BACKUP%" move "%SETTINGS_BACKUP%" "%DEPLOY_FOLDER%\Productify" >nul
 copy "%SOURCE_ROOT%\libs\windows\lib\x64\*.dll" "%DEPLOY_FOLDER%" >nul
 copy "%BUILD_FOLDER%\AntiHooking\%BUILD_CONFIG%\AntiHooking.dll" "%DEPLOY_FOLDER%" >nul
 copy "%SOURCE_ROOT%\app\SDL_GameControllerDB\gamecontrollerdb.txt" "%DEPLOY_FOLDER%" >nul

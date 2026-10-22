@@ -84,6 +84,13 @@ public:
                     m_Computer = event.computer;
                     m_TimeoutTimer->start(APP_SEEK_TIMEOUT);
                     emit q->searchingApp();
+
+                    // Productify Connect: the app list may already be cached, in which
+                    // case no further update arrives. Check it right away.
+                    {
+                        NvComputer* computer = event.computer;
+                        QTimer::singleShot(0, q, [q, computer]() { q->onComputerUpdated(computer); });
+                    }
                 } else {
                     m_State = StateFailure;
                     QString msg = QObject::tr("Computer %1 has not been paired. "

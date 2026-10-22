@@ -33,6 +33,13 @@ void ComputerSeeker::start(int timeout)
     }
 
     m_ComputerManager->startPolling();
+
+    // Productify Connect: polling only reports state *changes*, so a host that is
+    // already known and online would never be reported. Check it right away.
+    NvComputer* known = findMatchingComputer();
+    if (known && isOnline(known)) {
+        QTimer::singleShot(0, this, [this, known]() { onComputerUpdated(known); });
+    }
 }
 
 void ComputerSeeker::onComputerUpdated(NvComputer *computer)
