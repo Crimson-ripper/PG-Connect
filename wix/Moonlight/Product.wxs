@@ -77,7 +77,7 @@
       <RegistryValue Root="HKCU"
                      Key="Software\Productify"
                      Name="DesktopShortcutInstallState"
-                     Type="integer"
+                     Type="string"
                      Value="[ADDDESKTOPSHORTCUT]"
                      KeyPath="yes" />
     </Component>
