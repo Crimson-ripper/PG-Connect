@@ -5,7 +5,7 @@
 <?define ShortcutDesc = "Play your Productify Gamezone session" ?>
 <?define InstallFolder = "PG Connect" ?>
 
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:fire="http://wixtoolset.org/schemas/v4/wxs/firewall" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:fire="http://wixtoolset.org/schemas/v4/wxs/firewall" xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
 
   <Package Name="$(var.FullName)"
            Language="1033"
@@ -16,6 +16,21 @@
     <MediaTemplate CompressionLevel="high" EmbedCab="yes" />
 
     <Property Id="APPDATAFOLDER" Value="%LOCALAPPDATA%\Productify" />
+
+    <!-- PG Connect: the website ships this MSI directly (not the setup bundle), so it needs its
+         own screens: licence, progress, and a Finish page that can start the app. Without them a
+         double-click shows only a brief progress bar and looks like nothing happened. -->
+    <Property Id="ADDDESKTOPSHORTCUT" Value="1" Secure="yes" />
+    <WixVariable Id="WixUILicenseRtf" Value="..\MoonlightSetup\license.rtf" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch PG Connect" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#MoonlightExe]" />
+    <CustomAction Id="LaunchApplication" DllEntry="WixShellExec" Impersonate="yes" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" />
+    <UI>
+      <ui:WixUI Id="WixUI_Minimal" />
+      <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchApplication"
+               Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+    </UI>
 
     <!-- There's no way to delete a registry key on uninstall but not major upgrade, so
         we have to roll our own deletion via custom action -->
