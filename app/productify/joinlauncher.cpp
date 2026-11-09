@@ -17,6 +17,7 @@ namespace Productify
 
 // Sunshine on a fresh VM (or through a tunnel that is still handshaking) can take a while
 static const int kHostSeekTimeoutMs = 45000;
+static const int kTunnelBitrateCapKbps = 6000;
 // Give the pairing request time to reach Sunshine before asking the backend to submit the PIN
 static const int kPinSubmitDelayMs = 1500;
 
@@ -43,6 +44,9 @@ JoinLauncher::~JoinLauncher()
     finish();
     if (m_SavedPacketSize >= 0) {
         m_Preferences->packetSize = m_SavedPacketSize;
+    }
+    if (m_SavedBitrateKbps >= 0) {
+        m_Preferences->bitrateKbps = m_SavedBitrateKbps;
     }
 }
 
@@ -188,6 +192,25 @@ void JoinLauncher::startSeeker()
     connect(m_ComputerManager, &ComputerManager::pairingCompleted,
             this, &JoinLauncher::onPairingCompleted, Qt::UniqueConnection);
 
+    // A session that needs a new pairing is a new machine. Gamezone machines reuse the same
+    // name and tunnel address (10.77.0.1), so a PC saved from an earlier session would be
+    // matched instead, never come online, and the join would hang ("Found unexpected PC";
+    // seen 2026-11-09 by a returning player). Forget saved PCs at this address first.
+    if (m_Config.pairingMode == "pin") {
+        const QString address = (m_Config.networkMode == "wireguard") ? m_Config.wireguard.hostTunnelAddress
+                                                                       : m_Config.hostAddress;
+        const auto computers = m_ComputerManager->getComputers();
+        for (NvComputer* computer : computers) {
+            const auto addresses = computer->uniqueAddresses();
+            for (const NvAddress& addr : addresses) {
+                if (!address.isEmpty() && addr.address().compare(address, Qt::CaseInsensitive) == 0) {
+                    m_ComputerManager->deleteHost(computer);
+                    break;
+                }
+            }
+        }
+    }
+
     m_Seeker = new ComputerSeeker(m_ComputerManager, m_Config.streamHost(), this);
     connect(m_Seeker, &ComputerSeeker::computerFound, this, &JoinLauncher::onComputerFound);
     connect(m_Seeker, &ComputerSeeker::errorTimeout, this, &JoinLauncher::onSeekTimeout);
@@ -274,6 +297,13 @@ void JoinLauncher::launchApp()
     if (m_Config.networkMode == "wireguard" && m_Preferences->packetSize == 0) {
         m_SavedPacketSize = m_Preferences->packetSize;
         m_Preferences->packetSize = 1024;
+    }
+    // Gamezone machines are usually in another country: the default bitrate (15-20 Mbps at 1080p)
+    // flooded home connections in testing, while 5 Mbps played well (2026-11-09). Cap tunnelled
+    // sessions; a lower setting chosen by the player is kept.
+    if (m_Config.networkMode == "wireguard" && m_Preferences->bitrateKbps > kTunnelBitrateCapKbps) {
+        m_SavedBitrateKbps = m_Preferences->bitrateKbps;
+        m_Preferences->bitrateKbps = kTunnelBitrateCapKbps;
     }
 
     // Reuse upstream's CLI stream launcher: it waits for the app list, handles a

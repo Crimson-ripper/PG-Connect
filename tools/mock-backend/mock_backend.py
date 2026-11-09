@@ -180,6 +180,13 @@ class Handler(BaseHTTPRequestHandler):
         if not m:
             return self.reply(404, {"detail": "not found"})
         code, action = m.group(1).upper(), m.group(2)
+        if getattr(ARGS, "session_code", None):
+            # One private code for a remote tester: every other code (including the
+            # built-in test codes) is unknown, and the private code acts as TEST1234.
+            if code != ARGS.session_code.upper():
+                log(f"POST {action} with an unknown code (refused)")
+                return self.reply(404, {"detail": "unknown session code"})
+            code = "TEST1234"
         try:
             length = int(self.headers.get("Content-Length") or 0)
             body = json.loads(self.rfile.read(length) or b"{}") if length else {}
@@ -275,6 +282,8 @@ def main(argv=None):
     p.add_argument("--sunshine-user", default="admin")
     p.add_argument("--sunshine-ssh", help="ssh command prefix to the host (e.g. 'ssh -p 22 root@host'); the PIN is "
                                           "submitted by curl on the host using /root/gamezone-secrets")
+    p.add_argument("--session-code", help="accept only this code (6-16 letters/digits), for a remote tester "
+                                          "reaching this mock through an HTTPS tunnel; it then acts as TEST1234")
     p.add_argument("--wg-peer-key", help="host WireGuard public key: TEST1234 then uses a tunnel")
     p.add_argument("--wg-endpoint", help="host WireGuard endpoint ip:port")
     p.add_argument("--wg-peer-cmd", help="shell command that registers {key} on the host, e.g. "

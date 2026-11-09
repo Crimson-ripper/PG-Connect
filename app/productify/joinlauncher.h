@@ -77,6 +77,7 @@ private:
     QString m_InitialCode;
     StreamingPreferences* m_Preferences;
     int m_SavedPacketSize = -1;  // restored when the join ends (see launchApp)
+    int m_SavedBitrateKbps = -1; // restored when the join ends (see launchApp)
     ComputerManager* m_ComputerManager = nullptr;
     SessionApi* m_Api;
     WireGuardTunnel* m_Tunnel;
