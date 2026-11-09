@@ -20,7 +20,9 @@ struct WireGuardConfig
     QString endpoint;           // host public "ip:port" (the identity-mapped UDP port)
     QString allowedIps;         // e.g. "10.77.0.1/32" - never a default route
     QString hostTunnelAddress;  // Sunshine's address inside the tunnel, e.g. "10.77.0.1"
-    int mtu = 1420;
+    // 1280: Vast VM networking carried no more than ~1450-byte packets, so 1420 tunnels dropped
+    // video packets and the stream stayed black (tested 2026-11-09).
+    int mtu = 1280;
     int persistentKeepalive = 25;
 };
 

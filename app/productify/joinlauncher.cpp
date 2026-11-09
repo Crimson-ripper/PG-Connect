@@ -41,6 +41,9 @@ JoinLauncher::JoinLauncher(QString initialCode, StreamingPreferences* preference
 JoinLauncher::~JoinLauncher()
 {
     finish();
+    if (m_SavedPacketSize >= 0) {
+        m_Preferences->packetSize = m_SavedPacketSize;
+    }
 }
 
 QString JoinLauncher::normalizeCode(const QString& input) const
@@ -264,6 +267,14 @@ void JoinLauncher::launchApp()
 {
     setState(StateLaunching);
     emit stageChanged(tr("Starting %1...").arg(m_Config.appName));
+
+    // Through the tunnel, Moonlight sees a private address and would use 1392-byte video packets;
+    // with the tunnel's overhead they exceed what the path carries and keyframes never arrive
+    // (black screen, "Waiting for IDR frame"; 2026-11-09). Use VPN-sized packets for this session.
+    if (m_Config.networkMode == "wireguard" && m_Preferences->packetSize == 0) {
+        m_SavedPacketSize = m_Preferences->packetSize;
+        m_Preferences->packetSize = 1024;
+    }
 
     // Reuse upstream's CLI stream launcher: it waits for the app list, handles a
     // running app and creates the Session. Only the session's app is ever requested.

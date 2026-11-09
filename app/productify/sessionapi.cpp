@@ -181,7 +181,7 @@ void SessionApi::connectSession(const QString& code, const QString& wgPublicKey)
             config.wireguard.endpoint = wg["endpoint"].toString();
             config.wireguard.allowedIps = wg["allowed_ips"].toString();
             config.wireguard.hostTunnelAddress = wg["host_tunnel_address"].toString();
-            config.wireguard.mtu = wg["mtu"].toInt(1420);
+            config.wireguard.mtu = wg["mtu"].toInt(1280);
             config.wireguard.persistentKeepalive = wg["persistent_keepalive"].toInt(25);
         }
 

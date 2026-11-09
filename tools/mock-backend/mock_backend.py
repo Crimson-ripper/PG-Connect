@@ -93,7 +93,7 @@ def build_session(code, body):
                 "endpoint": f"{ARGS.host_address}:51820",
                 "allowed_ips": "10.77.0.1/32",
                 "host_tunnel_address": "10.77.0.1",
-                "mtu": 1420,
+                "mtu": 1280,
                 "persistent_keepalive": 25,
             },
         }
