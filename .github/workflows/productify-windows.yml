@@ -132,4 +132,4 @@ jobs:
 
           PG Connect is free software based on Moonlight (moonlight-qt v6.2.0), licensed under the GNU GPL v3. Source code for this build: this repository at tag ${GITHUB_REF_NAME}.
 
-          Tunnelled sessions currently need WireGuard for Windows (https://www.wireguard.com/install/). The installer is not code-signed yet, so Windows SmartScreen may warn you."
+          The installer also sets up PG Connect's built-in secure connection (a small background service), so no other software is needed. The installer is not code-signed yet, so Windows SmartScreen may warn you."
