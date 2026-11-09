@@ -45,6 +45,16 @@ jobs:
           arch: win64_msvc2022_64
           aqtsource: 'git+https://github.com/miurahr/aqtinstall.git@073e34d7c2ab4ae6961ed7cca690b3abd5ba5a7e'
 
+      - name: Install Go (builds the PG Connect tunnel service)
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: tunnelsvc/go.mod
+          cache-dependency-path: tunnelsvc/go.sum
+
+      - name: Test the tunnel service's config checks
+        shell: bash
+        run: cd tunnelsvc && go vet ./... && go test ./...
+
       - name: Set version
         shell: bash
         run: |

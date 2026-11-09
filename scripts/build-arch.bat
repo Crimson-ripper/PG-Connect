@@ -247,6 +247,10 @@ if !ERRORLEVEL! NEQ 0 goto Error
 copy %SOURCE_ROOT%\NOTICE.md %DEPLOY_FOLDER%\NOTICE.md
 if !ERRORLEVEL! NEQ 0 goto Error
 
+echo Building the PG Connect tunnel service (pgc-tunnel.exe + wireguard.dll)
+powershell -NoProfile -ExecutionPolicy Bypass -File %SOURCE_ROOT%\scripts\productify-tunnel.ps1 -Arch %ARCH% -DeployDir %DEPLOY_FOLDER% -CacheDir %BUILD_ROOT%\cache
+if !ERRORLEVEL! NEQ 0 goto Error
+
 if not x%QT_PATH:\5.=%==x%QT_PATH% (
     echo Copying qt.conf for Qt 5
     copy %SOURCE_ROOT%\app\qt_qt5.conf %DEPLOY_FOLDER%\qt.conf

@@ -19,9 +19,10 @@ struct WireGuardKeyPair
 // Brings up a split-tunnel WireGuard interface to the Gamezone host for the
 // duration of one session. Only the host's tunnel address is routed through it.
 //
-// Phase 1 (this file, Windows): drives an installed WireGuard for Windows
-// (wireguard.exe /installtunnelservice), which needs one UAC prompt to start and
-// one to stop. Phase 2 replaces this with an embedded tunnel (see DESIGN.md).
+// Windows: uses PG Connect's own tunnel service (pgc-tunnel.exe, installed by the MSI)
+// over a named pipe: no WireGuard install and no admin prompt (DESIGN.md phase 2).
+// If that service is missing (e.g. the portable build), falls back to an installed
+// WireGuard for Windows (phase 1: one UAC prompt to start and one to stop).
 class WireGuardTunnel : public QObject
 {
     Q_OBJECT
@@ -54,6 +55,7 @@ private:
     QString m_ConfigPath;   // staging copy in the user's profile (deleted once installed)
     QString m_ServicePath;  // copy the tunnel service reads (SYSTEM/Administrators only)
     bool m_Up = false;
+    void* m_Pipe = nullptr; // open connection to the tunnel service while the tunnel is up
 };
 
 }

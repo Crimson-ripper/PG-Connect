@@ -1,6 +1,8 @@
 #include "wgtunnel.h"
 
 #include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QFile>
 #include <QRegularExpression>
 #include <QStandardPaths>
@@ -63,6 +65,36 @@ static QString cmdExePath()
     return QDir::toNativeSeparators(qEnvironmentVariable("SystemRoot", "C:\\Windows") + "/System32/cmd.exe");
 }
 
+// ---- Phase 2: PG Connect's own tunnel service (pgc-tunnel.exe /broker) ----
+
+static const wchar_t* kTunnelPipe = L"\\\\.\\pipe\\PGConnectTunnel";
+
+static bool tunnelServiceAvailable()
+{
+    return WaitNamedPipeW(kTunnelPipe, 2000) != 0;
+}
+
+// Sends one JSON request line and reads one JSON response line. Returns false on I/O errors.
+static bool pipeRequest(HANDLE pipe, const QJsonObject& request, QJsonObject* response)
+{
+    QByteArray line = QJsonDocument(request).toJson(QJsonDocument::Compact) + "\n";
+    DWORD written = 0;
+    if (!WriteFile(pipe, line.constData(), (DWORD)line.size(), &written, nullptr) || written != (DWORD)line.size()) {
+        return false;
+    }
+    QByteArray reply;
+    char ch;
+    DWORD read = 0;
+    while (reply.size() < 4096 && ReadFile(pipe, &ch, 1, &read, nullptr) && read == 1) {
+        if (ch == '\n') {
+            *response = QJsonDocument::fromJson(reply).object();
+            return true;
+        }
+        reply.append(ch);
+    }
+    return false;
+}
+
 // Runs a program elevated (UAC prompt) and waits for it. Returns the exit code, or -1.
 static int runElevated(const QString& exe, const QString& args)
 {
@@ -91,9 +123,9 @@ static int runElevated(const QString& exe, const QString& args)
 bool WireGuardTunnel::isSupported(QString* reason)
 {
 #ifdef Q_OS_WIN32
-    if (wireguardExePath().isEmpty()) {
+    if (!tunnelServiceAvailable() && wireguardExePath().isEmpty()) {
         if (reason) {
-            *reason = tr("This session needs WireGuard. Install it from https://www.wireguard.com/install/ and try again.");
+            *reason = tr("PG Connect's secure connection isn't installed. Reinstall PG Connect from productifynow.com/gamezone and try again.");
         }
         return false;
     }
@@ -141,6 +173,39 @@ void WireGuardTunnel::up(const WireGuardConfig& config, const QString& privateKe
             return;
         }
     }
+
+#ifdef Q_OS_WIN32
+    if (tunnelServiceAvailable()) {
+        // The private key goes straight to the service over a pipe that only this machine's
+        // interactive users, SYSTEM and Administrators can open; it is never written to disk here.
+        QString text = renderConfig(config, privateKey);
+        QThread* worker = QThread::create([this, text]() {
+            HANDLE pipe = CreateFileW(kTunnelPipe, GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, nullptr);
+            QJsonObject reply;
+            bool ok = pipe != INVALID_HANDLE_VALUE &&
+                      pipeRequest(pipe, QJsonObject{{"op", "up"}, {"config", text}}, &reply);
+            QString error = ok ? reply["error"].toString() : tr("Could not reach PG Connect's tunnel service.");
+            bool up = ok && reply["ok"].toBool();
+            if (!up && pipe != INVALID_HANDLE_VALUE) {
+                CloseHandle(pipe);
+                pipe = INVALID_HANDLE_VALUE;
+            }
+            QMetaObject::invokeMethod(this, [this, up, pipe, error]() {
+                if (up) {
+                    m_Pipe = pipe;
+                    m_Up = true;
+                    emit tunnelUp();
+                }
+                else {
+                    emit tunnelFailed(tr("The secure tunnel could not start: %1").arg(error));
+                }
+            }, Qt::QueuedConnection);
+        });
+        connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+        worker->start();
+        return;
+    }
+#endif
 
     // WireGuard tunnel names: max 32 chars of [a-zA-Z0-9_=+.-]
     QString suffix = QString(sessionId).remove(QRegularExpression("[^a-zA-Z0-9]")).left(12);
@@ -203,6 +268,14 @@ void WireGuardTunnel::up(const WireGuardConfig& config, const QString& privateKe
 void WireGuardTunnel::down()
 {
 #ifdef Q_OS_WIN32
+    if (m_Pipe != nullptr) {
+        // Closing the connection is enough (the service removes the tunnel); "down" makes it prompt.
+        QJsonObject reply;
+        pipeRequest((HANDLE)m_Pipe, QJsonObject{{"op", "down"}}, &reply);
+        CloseHandle((HANDLE)m_Pipe);
+        m_Pipe = nullptr;
+        m_Up = false;
+    }
     if (m_Up) {
         m_Up = false;
         runElevated(cmdExePath(), "/s /c \"\"" + wireguardExePath() + "\" /uninstalltunnelservice " + m_TunnelName +

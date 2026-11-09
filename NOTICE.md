@@ -31,6 +31,9 @@ Unchanged from upstream; each keeps its own licence:
 | SDL_GameControllerDB | zlib | `app/SDL_GameControllerDB/` |
 | Prebuilt Windows libraries (FFmpeg, SDL2, Opus, OpenSSL, libplacebo, dav1d, Detours, discord-rpc) | see each project | downloaded by `setup-deps.ps1` from moonlight-stream/moonlight-qt-deps |
 | Qt 6 | LGPL v3 (dynamically linked) | https://www.qt.io |
+| wireguard-windows (`tunnel`, `conf`, `driver` packages, in `pgc-tunnel.exe`) | MIT | https://git.zx2c4.com/wireguard-windows |
+| wireguard-nt prebuilt `wireguard.dll` (unmodified, used only via its public API) | WireGuard LLC prebuilt binaries licence, shipped as `WIREGUARD-NT-LICENSE.txt` | https://download.wireguard.com/wireguard-nt/ |
+| go-winio | MIT | https://github.com/microsoft/go-winio |
 
 Optional, not bundled: WireGuard for Windows (https://www.wireguard.com), used only for
 tunnelled sessions; "WireGuard" is a registered trademark of Jason A. Donenfeld.

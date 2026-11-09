@@ -65,6 +65,10 @@ if !ERRORLEVEL! NEQ 0 exit /b 1
 for /f "usebackq delims=" %%i in (`%VSWHERE% -latest -products * -find VC\Redist\MSVC\*\x64\Microsoft.VC*.CRT`) do set VC_REDIST_DLL_PATH=%%i
 if defined VC_REDIST_DLL_PATH copy "%VC_REDIST_DLL_PATH%\*.dll" "%DEPLOY_FOLDER%" >nul
 
+rem Tunnel service + wireguard.dll, so a dev build can be tested with an installed service.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%SOURCE_ROOT%\scripts\productify-tunnel.ps1" -Arch x64 -DeployDir "%DEPLOY_FOLDER%" -CacheDir "%SOURCE_ROOT%\build\cache"
+if !ERRORLEVEL! NEQ 0 exit /b 1
+
 echo. > "%DEPLOY_FOLDER%\portable.dat"
 echo Dev build ready: %DEPLOY_FOLDER%\PGConnect.exe
 exit /b 0

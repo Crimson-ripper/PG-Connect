@@ -122,8 +122,33 @@
     </Component>
 
     <ComponentGroup Id="MoonlightDependencies" Directory="INSTALLFOLDER">
-      <Files Include="$(var.DeployDir)\**" />
+      <Files Include="$(var.DeployDir)\**">
+        <Exclude Files="$(var.DeployDir)\pgc-tunnel.exe" />
+      </Files>
     </ComponentGroup>
+
+    <!-- PG Connect's built-in secure tunnel (DESIGN.md phase 2): a LocalSystem service that the app
+         asks over a named pipe to bring a Gamezone tunnel up or down, so players need no separate
+         WireGuard install and no admin prompt per session. Uses wireguard.dll (from the deploy folder). -->
+    <Component Id="PGConnectTunnel" Directory="INSTALLFOLDER">
+      <File Id="PGConnectTunnelExe" KeyPath="yes" Checksum="yes" Source="$(var.DeployDir)\pgc-tunnel.exe" />
+      <ServiceInstall Id="PGConnectTunnelService"
+                      Name="PGConnectTunnel"
+                      DisplayName="PG Connect Tunnel"
+                      Description="Secure connection for PG Connect game-streaming sessions. Only connects to Productify Gamezone machines."
+                      Type="ownProcess"
+                      Start="auto"
+                      ErrorControl="normal"
+                      Account="LocalSystem"
+                      Arguments="/broker"
+                      Vital="yes" />
+      <ServiceControl Id="PGConnectTunnelControl"
+                      Name="PGConnectTunnel"
+                      Start="install"
+                      Stop="both"
+                      Remove="uninstall"
+                      Wait="yes" />
+    </Component>
 
     <Feature Id="ProductFeature" Title="PG Connect" Level="1" ConfigurableDirectory="INSTALLFOLDER">
       <ComponentRef Id="Moonlight" />
@@ -132,6 +157,7 @@
       <ComponentRef Id="MoonlightDesktopShortcutState" />
       <ComponentRef Id="MoonlightDesktopShortcut" />
       <ComponentGroupRef Id="MoonlightDependencies" />
+      <ComponentRef Id="PGConnectTunnel" />
     </Feature>
 
     <StandardDirectory Id="DesktopFolder" />
