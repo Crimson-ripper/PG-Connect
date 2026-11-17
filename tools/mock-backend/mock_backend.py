@@ -115,20 +115,23 @@ def submit_pin_to_sunshine(code, pin, device_name):
         # Production-like path: run curl on the VM itself; Sunshine credentials never leave the VM.
         import subprocess
         name = re.sub(r"[^A-Za-z0-9 _-]", "", device_name or "PG Connect")[:40] or "PG Connect"
-        remote = ("set -a; . /root/gamezone-secrets; curl -sk -u \"$SUNSHINE_USER:$SUNSHINE_PASS\" "
+        # Sunshine's /api/pin says {"status":true} even when no pairing request is waiting, and the PIN
+        # is then lost or used by the next attempt ("PIN didn't match"). So submit once, after the
+        # client's held-open pairing request to port 47989 has arrived from the tunnel (seen twice,
+        # 0.5 s apart, so a short serverinfo call doesn't count). Same fix as the Productify backend.
+        remote = ("hits=0; for i in $(seq 1 60); do "
+                  "if ss -Htn state established '( sport = :47989 )' | grep -q '10.77.0.2:'; then hits=$((hits+1)); else hits=0; fi; "
+                  "[ $hits -ge 2 ] && break; sleep 0.5; done; "
+                  "set -a; . /root/gamezone-secrets; curl -sk -u \"$SUNSHINE_USER:$SUNSHINE_PASS\" "
                   "-H 'Content-Type: application/json' "
                   f"-d '{{\"pin\":\"{pin}\",\"name\":\"{name}\"}}' https://localhost:47990/api/pin")
-        deadline = time.monotonic() + 20
-        while time.monotonic() < deadline:
-            r = subprocess.run(ARGS.sunshine_ssh + " " + json.dumps(remote), shell=True,
-                               capture_output=True, text=True, timeout=30)
-            out = (r.stdout or "").strip()
-            if '"status":true' in out.replace(" ", "") or '"status":"true"' in out.replace(" ", ""):
-                log(f"{code}: Sunshine accepted the PIN (via ssh)")
-                return
-            log(f"{code}: Sunshine answered {out[:120]!r} rc={r.returncode}; retrying")
-            time.sleep(1)
-        log(f"{code}: gave up submitting the PIN")
+        r = subprocess.run(ARGS.sunshine_ssh + " " + json.dumps(remote), shell=True,
+                           capture_output=True, text=True, timeout=60)
+        out = (r.stdout or "").strip()
+        if '"status":true' in out.replace(" ", "") or '"status":"true"' in out.replace(" ", ""):
+            log(f"{code}: Sunshine accepted the PIN (via ssh)")
+        else:
+            log(f"{code}: Sunshine answered {out[:120]!r} rc={r.returncode}")
         return
     if not ARGS.sunshine_url:
         log(f"{code}: no --sunshine-url; enter PIN {pin} in the Sunshine web UI within 30s to finish pairing")
