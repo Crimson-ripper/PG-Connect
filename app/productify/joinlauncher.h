@@ -4,6 +4,7 @@
 #include "wgtunnel.h"
 
 #include <QObject>
+#include <QElapsedTimer>
 #include <QPointer>
 
 class ComputerManager;
@@ -40,6 +41,9 @@ public:
 
     // Called when the stream ends or the app quits.
     Q_INVOKABLE void finish();
+    // Called when the network dropped mid-stream: start the same game again (up to
+    // kMaxReconnects times; the count resets after a stream stays up kReconnectResetMs).
+    Q_INVOKABLE void reconnect();
 
 signals:
     void stageChanged(QString text);
@@ -78,6 +82,8 @@ private:
     StreamingPreferences* m_Preferences;
     int m_SavedPacketSize = -1;  // restored when the join ends (see launchApp)
     int m_SavedBitrateKbps = -1; // restored when the join ends (see launchApp)
+    int m_Reconnects = 0;
+    QElapsedTimer m_StreamClock;  // how long the current stream has been up
     ComputerManager* m_ComputerManager = nullptr;
     SessionApi* m_Api;
     WireGuardTunnel* m_Tunnel;

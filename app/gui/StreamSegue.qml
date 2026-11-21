@@ -13,6 +13,8 @@ Item {
                                            qsTr("Starting %1...").arg(appName)
     property bool isResume : false
     property bool quitAfter : false
+    // Productify: called instead of the error dialog/quit when the network drops mid-stream
+    property var onDropped : null
 
     function stageStarting(stage)
     {
@@ -61,6 +63,16 @@ Item {
 
     function sessionFinished(portTestResult)
     {
+        if (onDropped && session && session.droppedMidStream()) {
+            // Network drop: no error box and no quit; the join flow reconnects to the same game.
+            streamSegueErrorDialog.text = ""
+            SdlGamepadKeyNavigation.enable()
+            window.visible = true
+            stackView.pop()
+            onDropped()
+            return
+        }
+
         if (portTestResult !== 0 && portTestResult !== -1 && streamSegueErrorDialog.text) {
             streamSegueErrorDialog.text += "\n\n" + qsTr("This PC's Internet connection is blocking PG Connect. Streaming over the Internet may not work while connected to this network.")
         }

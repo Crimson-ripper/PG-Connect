@@ -314,10 +314,40 @@ void JoinLauncher::launchApp()
     connect(m_StreamLauncher, &CliStartStream::Launcher::sessionCreated, this,
             [this](QString appName, Session* session) {
         setState(StateStreaming);
+        m_StreamClock.start();
         m_Api->reportEvent(m_Config, "stream_started");
         emit sessionCreated(appName, session);
     });
     m_StreamLauncher->execute(m_ComputerManager);
+}
+
+void JoinLauncher::reconnect()
+{
+    static const int kMaxReconnects = 3;
+    static const qint64 kReconnectResetMs = 5 * 60 * 1000;
+    if (m_StreamClock.isValid() && m_StreamClock.elapsed() > kReconnectResetMs) {
+        m_Reconnects = 0; // the last stream ran fine for a while: this is a fresh problem
+    }
+    if (m_State != StateStreaming || m_Reconnects >= kMaxReconnects) {
+        m_Api->reportEvent(m_Config, "stream_dropped", "gave up");
+        fail(tr("The connection to your gaming machine keeps dropping. Your session is still "
+                "running: check your internet connection, then open PG Connect again from the "
+                "Gamezone page."));
+        return;
+    }
+    m_Reconnects++;
+    m_Api->reportEvent(m_Config, "stream_dropped", QString("reconnect %1").arg(m_Reconnects));
+    emit stageChanged(tr("Connection dropped. Reconnecting (%1 of %2)...").arg(m_Reconnects).arg(kMaxReconnects));
+    if (m_StreamLauncher) {
+        m_StreamLauncher->deleteLater();
+        m_StreamLauncher = nullptr;
+    }
+    // A short pause lets the network recover; the tunnel and pairing are kept.
+    QTimer::singleShot(3000, this, [this]() {
+        if (m_State == StateStreaming) {
+            launchApp();
+        }
+    });
 }
 
 void JoinLauncher::quitRunningApp()

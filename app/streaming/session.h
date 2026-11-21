@@ -104,6 +104,9 @@ public:
     Q_INVOKABLE bool initialize(QQuickWindow* qtWindow);
     Q_INVOKABLE void start();
     Q_INVOKABLE void interrupt();
+    // Productify (2026-11-21): true when a stream that had started ended because the network
+    // dropped (e.g. "Connection terminated: -1"), so the join flow can reconnect instead of quitting.
+    Q_INVOKABLE bool droppedMidStream() const;
     Q_PROPERTY(QStringList launchWarnings MEMBER m_LaunchWarnings NOTIFY launchWarningsChanged);
 
     static
@@ -259,6 +262,8 @@ private:
     Uint32 m_FullScreenFlag;
     QQuickWindow* m_QtWindow;
     bool m_UnexpectedTermination;
+    bool m_StreamStarted = false;      // Productify: connectionStarted was emitted
+    int m_TerminationCode = 0;         // Productify: last ML_ERROR_* from clConnectionTerminated
     SdlInputHandler* m_InputHandler;
     int m_MouseEmulationRefCount;
     int m_FlushingWindowEventsRef;

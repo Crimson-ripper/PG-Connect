@@ -51,7 +51,9 @@ Item {
             "appName": appName,
             "session": session,
             // A Gamezone session has exactly one app: close when the stream ends.
-            "quitAfter": true
+            "quitAfter": true,
+            // ...unless the network dropped: then reconnect (PG Connect 0.1.6)
+            "onDropped": function() { joinLauncher.reconnect() }
         })
         stackView.push(segue)
     }

@@ -85,9 +85,26 @@ void Session::clStageFailed(int stage, int errorCode)
     emit s_ActiveSession->stageFailed(QString::fromLocal8Bit(LiGetStageName(stage)), errorCode, QString(failingPorts));
 }
 
+bool Session::droppedMidStream() const
+{
+    if (!m_StreamStarted) {
+        return false;
+    }
+    switch (m_TerminationCode) {
+    case ML_ERROR_GRACEFUL_TERMINATION:      // the player or the host ended it
+    case ML_ERROR_PROTECTED_CONTENT:         // host-side problems: reconnecting won't help
+    case ML_ERROR_UNEXPECTED_EARLY_TERMINATION:
+    case ML_ERROR_FRAME_CONVERSION:
+        return false;
+    default:                                 // network: no video traffic/frames, -1 and others
+        return true;
+    }
+}
+
 void Session::clConnectionTerminated(int errorCode)
 {
     unsigned int portFlags = LiGetPortFlagsFromTerminationErrorCode(errorCode);
+    s_ActiveSession->m_TerminationCode = errorCode;
     s_ActiveSession->m_PortTestResults = LiTestClientConnectivity(CONN_TEST_SERVER, 443, portFlags);
 
     // Display the termination dialog if this was not intended
@@ -1712,6 +1729,7 @@ bool Session::startConnectionAsync()
         return false;
     }
 
+    m_StreamStarted = true;
     emit connectionStarted();
     return true;
 }
