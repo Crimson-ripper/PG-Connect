@@ -27,7 +27,7 @@ Item {
         }
         var code = joinLauncher.normalizeCode(codeField.text)
         if (code === "") {
-            errorLabel.text = qsTr("Session codes are 6 to 16 letters and numbers, for example PFY-7K2M-9QXD.")
+            errorLabel.text = qsTr("Session codes are 6 to 16 letters and numbers, like R929RSEQ. Copy it from the Gamezone page.")
             return
         }
         errorLabel.text = ""
@@ -63,7 +63,34 @@ Item {
         quitAppDialog.open()
     }
 
+    function newer(a, b) { // "0.1.7" > "0.1.6"
+        var x = a.split("."), y = b.split(".")
+        for (var i = 0; i < Math.max(x.length, y.length); i++) {
+            var d = (parseInt(x[i]) || 0) - (parseInt(y[i]) || 0)
+            if (d !== 0) return d > 0
+        }
+        return false
+    }
+
+    function checkForUpdate() {
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState !== XMLHttpRequest.DONE || xhr.status !== 200) return
+            try {
+                var rel = JSON.parse(xhr.responseText)
+                var latest = String(rel.tag_name || "").replace(/^pfy-v/, "")
+                if (latest && newer(latest, Qt.application.version)) {
+                    updateBanner.url = "https://www.productifynow.com/gamezone"
+                    updateBanner.latest = latest
+                }
+            } catch (e) { /* no banner on any problem */ }
+        }
+        xhr.open("GET", "https://api.github.com/repos/Crimson-ripper/PG-Connect/releases/latest")
+        xhr.send()
+    }
+
     Component.onCompleted: {
+        checkForUpdate()
         joinLauncher.stageChanged.connect(onStageChanged)
         joinLauncher.failed.connect(onFailed)
         joinLauncher.sessionCreated.connect(onSessionCreated)
@@ -100,6 +127,30 @@ Item {
             anchors.top: parent.top
             anchors.margins: 20
             spacing: 12
+
+            // 0.1.7: players kept joining with old versions (missing fixes); say when a newer one exists.
+            Rectangle {
+                id: updateBanner
+                property string latest: ""
+                property string url: ""
+                visible: latest !== ""
+                Layout.fillWidth: true
+                implicitHeight: updateText.implicitHeight + 16
+                color: "#F3F9D8"
+                border.width: 1
+                border.color: "#C8DC7A"
+                Label {
+                    id: updateText
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    wrapMode: Text.WordWrap
+                    textFormat: Text.StyledText
+                    color: ink
+                    font.pixelSize: 13
+                    text: qsTr("PG Connect %1 is available, with fixes for Gamezone. <a href=\"%2\">Download it</a>, install it over this version, then join again.").arg(updateBanner.latest).arg(updateBanner.url)
+                    onLinkActivated: function(link) { Qt.openUrlExternally(link) }
+                }
+            }
 
             Label {
                 text: qsTr("PRODUCTIFY GAMEZONE")
@@ -141,8 +192,8 @@ Item {
                 id: codeField
                 Layout.fillWidth: true
                 enabled: !joinLauncher.busy
-                placeholderText: "PFY-XXXX-XXXX"
-                placeholderTextColor: "#A3A39C"
+                // 0.1.7: no placeholderText; the Material style floats it above the box once
+                // something is typed, where it overlapped the border and the code.
                 font.family: monoFont
                 font.pixelSize: 22
                 font.capitalization: Font.AllUppercase
@@ -160,6 +211,16 @@ Item {
                     color: "#FFFFFF"
                     border.width: 1
                     border.color: codeField.activeFocus ? ink : line
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: codeField.text.length === 0
+                    text: qsTr("e.g. R929RSEQ")
+                    color: "#A3A39C"
+                    font.family: monoFont
+                    font.pixelSize: 22
+                    Accessible.ignored: true
                 }
 
                 Keys.onReturnPressed: startJoin()
