@@ -235,6 +235,26 @@ void SessionApi::requestPinSubmission(const SessionConfig& config)
     });
 }
 
+void SessionApi::fetchStatus(const QString& code)
+{
+    QUrl base = apiBase();
+    if (base.isEmpty() || code.isEmpty()) {
+        return;
+    }
+    QNetworkRequest request(QUrl(base.toString() + "/api/gamezone/sessions/" +
+                                 QString::fromLatin1(QUrl::toPercentEncoding(code)) + "/status"));
+    request.setHeader(QNetworkRequest::UserAgentHeader,
+                      QString("PGConnect/%1 (%2)").arg(QCoreApplication::applicationVersion(),
+                                                              QSysInfo::prettyProductName()));
+    QNetworkReply* reply = m_Nam->get(request);
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        if (reply->error() == QNetworkReply::NoError) {
+            emit statusReceived(QJsonDocument::fromJson(reply->readAll()).object());
+        }
+    });
+}
+
 QNetworkReply* SessionApi::reportEvent(const SessionConfig& config, const QString& event, const QString& detail)
 {
     QJsonObject body{{"session_id", config.sessionId}, {"event", event}};

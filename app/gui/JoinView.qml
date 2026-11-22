@@ -47,6 +47,12 @@ Item {
         }
     }
 
+    // 0.1.9: balance is zero and the machine shuts down soon unless the player tops up
+    property string creditWarning: ""
+    function onCreditWarning(text) {
+        creditWarning = text
+    }
+
     function onAppChoicesReady(choices, current) {
         appChoices = choices
         currentApp = current
@@ -113,6 +119,7 @@ Item {
         joinLauncher.sessionCreated.connect(onSessionCreated)
         joinLauncher.appQuitRequired.connect(onAppQuitRequired)
         joinLauncher.appChoicesReady.connect(onAppChoicesReady)
+        joinLauncher.creditWarning.connect(onCreditWarning)
     }
 
     StackView.onActivated: {
@@ -166,6 +173,26 @@ Item {
                     color: ink
                     font.pixelSize: 13
                     text: qsTr("PG Connect %1 is available, with fixes for Gamezone. <a href=\"%2\">Download it</a>, install it over this version, then join again.").arg(updateBanner.latest).arg(updateBanner.url)
+                    onLinkActivated: function(link) { Qt.openUrlExternally(link) }
+                }
+            }
+
+            Rectangle {
+                visible: creditWarning !== ""
+                Layout.fillWidth: true
+                implicitHeight: creditText.implicitHeight + 16
+                color: "#FDECEA"
+                border.width: 1
+                border.color: "#E0867C"
+                Label {
+                    id: creditText
+                    anchors.fill: parent
+                    anchors.margins: 8
+                    wrapMode: Text.WordWrap
+                    textFormat: Text.StyledText
+                    color: ink
+                    font.pixelSize: 13
+                    text: creditWarning.replace(/\n/g, " ") + " <a href=\"https://www.productifynow.com/pricing\">Top up</a>"
                     onLinkActivated: function(link) { Qt.openUrlExternally(link) }
                 }
             }

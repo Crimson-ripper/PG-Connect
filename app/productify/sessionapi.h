@@ -6,6 +6,7 @@
 #include <QUrl>
 
 class QNetworkAccessManager;
+#include <QJsonObject>
 class QNetworkReply;
 
 namespace Productify
@@ -77,10 +78,14 @@ public:
     // POST /api/gamezone/sessions/{code}/events - best effort; the reply deletes itself
     QNetworkReply* reportEvent(const SessionConfig& config, const QString& event, const QString& detail = QString());
 
+    // GET /api/gamezone/sessions/{code}/status - 0.1.9: credit grace period, for the in-game warning
+    void fetchStatus(const QString& code);
+
 signals:
     void sessionReady(Productify::SessionConfig config);
     void sessionFailed(QString message);
     void pinSubmissionFailed(QString message);
+    void statusReceived(QJsonObject status);
 
 private:
     QNetworkReply* post(const QString& code, const QString& action, const QByteArray& body);

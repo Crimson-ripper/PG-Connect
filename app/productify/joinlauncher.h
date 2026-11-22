@@ -55,6 +55,8 @@ signals:
     void sessionCreated(QString appName, Session* session);
     void appQuitRequired(QString appName);
     void appChoicesReady(QStringList choices, QString current);
+    // 0.1.9: "" or a warning to show (balance is zero, machine shuts down soon)
+    void creditWarning(QString text);
     void busyChanged();
 
 private slots:
@@ -84,6 +86,8 @@ private:
     void startSeeker();
     void launchApp();
     void readyToLaunch();
+    void onStatus(const QJsonObject& status);
+    void showCreditWarning();
 
     QString m_InitialCode;
     StreamingPreferences* m_Preferences;
@@ -99,6 +103,11 @@ private:
     QPointer<ComputerSeeker> m_Seeker;
     QPointer<CliStartStream::Launcher> m_StreamLauncher;
     State m_State = StateIdle;
+    QTimer* m_StatusTimer;         // asks the backend for the credit state while connected
+    QTimer* m_CountdownTimer;      // updates the warning every second
+    qint64 m_GraceEndsMs = 0;      // when the machine shuts down (0: no warning)
+    double m_MinTopup = 0;
+    bool m_OverlayShown = false;
 };
 
 }

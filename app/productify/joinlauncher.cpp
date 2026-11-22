@@ -11,6 +11,8 @@
 #include <memory>
 #include <QNetworkReply>
 #include <QTimer>
+#include <QDateTime>
+#include <QJsonObject>
 
 namespace Productify
 {
@@ -26,8 +28,19 @@ JoinLauncher::JoinLauncher(QString initialCode, StreamingPreferences* preference
       m_InitialCode(SessionApi::normalizeCode(initialCode)),
       m_Preferences(preferences),
       m_Api(new SessionApi(this)),
-      m_Tunnel(new WireGuardTunnel(this))
+      m_Tunnel(new WireGuardTunnel(this)),
+      m_StatusTimer(new QTimer(this)),
+      m_CountdownTimer(new QTimer(this))
 {
+    m_StatusTimer->setInterval(20000);
+    connect(m_StatusTimer, &QTimer::timeout, this, [this]() {
+        if (m_State == StatePicking || m_State == StateLaunching || m_State == StateStreaming) {
+            m_Api->fetchStatus(m_Config.code);
+        }
+    });
+    connect(m_Api, &SessionApi::statusReceived, this, &JoinLauncher::onStatus);
+    m_CountdownTimer->setInterval(1000);
+    connect(m_CountdownTimer, &QTimer::timeout, this, &JoinLauncher::showCreditWarning);
     connect(m_Api, &SessionApi::sessionReady, this, &JoinLauncher::onSessionReady);
     connect(m_Api, &SessionApi::sessionFailed, this, &JoinLauncher::fail);
     connect(m_Api, &SessionApi::pinSubmissionFailed, this, [this](QString message) {
@@ -336,6 +349,10 @@ bool JoinLauncher::canSwitchApps() const
 
 void JoinLauncher::readyToLaunch()
 {
+    if (!m_StatusTimer->isActive()) {
+        m_StatusTimer->start();
+        m_Api->fetchStatus(m_Config.code);
+    }
     if (!canSwitchApps()) {
         launchApp();
         return;
@@ -413,6 +430,8 @@ void JoinLauncher::cancel()
 
 void JoinLauncher::finish()
 {
+    m_StatusTimer->stop();
+    m_CountdownTimer->stop();
     if (m_State == StateStreaming) {
         // The process usually exits right after this, so wait briefly for delivery.
         QNetworkReply* reply = m_Api->reportEvent(m_Config, "stream_ended");
@@ -425,6 +444,42 @@ void JoinLauncher::finish()
     if (m_State != StateFailed) {
         setState(StateIdle);
     }
+}
+
+// 0.1.9: the balance reached zero and the machine shuts down in a few minutes unless the player
+// tops up. Shown over the game (Moonlight's status overlay) and on the PG Connect screen.
+void JoinLauncher::onStatus(const QJsonObject& status)
+{
+    if (status.contains("grace_seconds_left")) {
+        m_GraceEndsMs = QDateTime::currentMSecsSinceEpoch() + qint64(status["grace_seconds_left"].toInt()) * 1000;
+        m_MinTopup = status["min_topup"].toDouble();
+        if (!m_CountdownTimer->isActive()) {
+            m_CountdownTimer->start();
+        }
+    }
+    else {
+        m_GraceEndsMs = 0;
+        m_CountdownTimer->stop();
+    }
+    showCreditWarning();
+}
+
+void JoinLauncher::showCreditWarning()
+{
+    QString text;
+    if (m_GraceEndsMs) {
+        qint64 left = qMax<qint64>(0, (m_GraceEndsMs - QDateTime::currentMSecsSinceEpoch()) / 1000);
+        text = tr("Your credit balance is zero.\nThis machine shuts down in %1:%2 unless you top up\n"
+                  "at least $%3 at productifynow.com.")
+                   .arg(left / 60).arg(left % 60, 2, 10, QChar('0')).arg(m_MinTopup, 0, 'f', 2);
+    }
+    Session* session = Session::get();
+    if (session && (!text.isEmpty() || m_OverlayShown)) {
+        session->getOverlayManager().updateOverlayText(Overlay::OverlayStatusUpdate, text.toUtf8().constData());
+        session->getOverlayManager().setOverlayState(Overlay::OverlayStatusUpdate, !text.isEmpty());
+        m_OverlayShown = !text.isEmpty();
+    }
+    emit creditWarning(text);
 }
 
 }
