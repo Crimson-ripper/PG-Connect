@@ -35,8 +35,23 @@ Item {
         joinLauncher.join(code, ComputerManager)
     }
 
+    // 0.1.8: launcher picker (Steam, Epic, ...), shown after pairing and when the player leaves a game
+    property bool picking: false
+    property var appChoices: []
+    property string currentApp: ""
+
     function onStageChanged(text) {
         stageLabel.text = text
+        if (text !== "") {
+            picking = false
+        }
+    }
+
+    function onAppChoicesReady(choices, current) {
+        appChoices = choices
+        currentApp = current
+        errorLabel.text = ""
+        picking = true
     }
 
     function onFailed(message) {
@@ -53,7 +68,9 @@ Item {
             // A Gamezone session has exactly one app: close when the stream ends.
             "quitAfter": true,
             // ...unless the network dropped: then reconnect (PG Connect 0.1.6)
-            "onDropped": function() { joinLauncher.reconnect() }
+            "onDropped": function() { joinLauncher.reconnect() },
+            // ...and leaving a game (Ctrl+Alt+Shift+Q) goes back to the launcher picker (0.1.8)
+            "onEnded": joinLauncher.canSwitchApps() ? function() { joinLauncher.backToPicker() } : null
         })
         stackView.push(segue)
     }
@@ -95,6 +112,7 @@ Item {
         joinLauncher.failed.connect(onFailed)
         joinLauncher.sessionCreated.connect(onSessionCreated)
         joinLauncher.appQuitRequired.connect(onAppQuitRequired)
+        joinLauncher.appChoicesReady.connect(onAppChoicesReady)
     }
 
     StackView.onActivated: {
@@ -253,9 +271,46 @@ Item {
                 }
             }
 
+            ColumnLayout {
+                Layout.fillWidth: true
+                visible: picking
+                spacing: 8
+
+                Label {
+                    Layout.fillWidth: true
+                    text: qsTr("Connected. What do you want to open?")
+                    font.family: uiFont
+                    font.pixelSize: 15
+                    font.bold: true
+                    color: ink
+                }
+
+                Repeater {
+                    model: appChoices
+                    delegate: Button {
+                        Layout.fillWidth: true
+                        text: modelData === currentApp ? qsTr("%1 (last used)").arg(modelData) : modelData
+                        onClicked: {
+                            picking = false
+                            joinLauncher.chooseApp(modelData)
+                        }
+                        Accessible.name: qsTr("Open %1").arg(modelData)
+                    }
+                }
+
+                Label {
+                    Layout.fillWidth: true
+                    wrapMode: Text.Wrap
+                    text: qsTr("While playing, press Ctrl+Alt+Shift+Q to come back here and switch.")
+                    font.family: uiFont
+                    font.pixelSize: 12
+                    color: muted
+                }
+            }
+
             RowLayout {
                 Layout.fillWidth: true
-                visible: joinLauncher.busy
+                visible: joinLauncher.busy && !picking
                 spacing: 8
 
                 BusyIndicator {

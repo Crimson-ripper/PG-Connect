@@ -15,6 +15,8 @@ Item {
     property bool quitAfter : false
     // Productify: called instead of the error dialog/quit when the network drops mid-stream
     property var onDropped : null
+    // Productify (0.1.8): called instead of quitting when a stream ends normally (player left the game)
+    property var onEnded : null
 
     function stageStarting(stage)
     {
@@ -70,6 +72,13 @@ Item {
             window.visible = true
             stackView.pop()
             onDropped()
+            return
+        }
+        if (onEnded && !streamSegueErrorDialog.text) {
+            SdlGamepadKeyNavigation.enable()
+            window.visible = true
+            stackView.pop()
+            onEnded()
             return
         }
 

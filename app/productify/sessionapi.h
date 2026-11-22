@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QUrl>
 
 class QNetworkAccessManager;
@@ -40,7 +41,8 @@ struct SessionConfig
     QString pin;                // one-time 4 digit PIN
     QString pairToken;          // opaque token for /pairing
 
-    QString appName;            // the only app the client may launch
+    QString appName;            // the app to open (the player's last or the site's default)
+    QStringList appChoices;     // 0.1.8: launchers the player may pick and switch between
 
     QString networkMode;        // "direct" or "wireguard"
     WireGuardConfig wireguard;

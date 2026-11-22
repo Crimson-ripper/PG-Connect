@@ -44,12 +44,17 @@ public:
     // Called when the network dropped mid-stream: start the same game again (up to
     // kMaxReconnects times; the count resets after a stream stays up kReconnectResetMs).
     Q_INVOKABLE void reconnect();
+    // 0.1.8: switching launchers (Steam, Epic, ...) inside PG Connect instead of on the website.
+    Q_INVOKABLE bool canSwitchApps() const;
+    Q_INVOKABLE void chooseApp(const QString& name);
+    Q_INVOKABLE void backToPicker();
 
 signals:
     void stageChanged(QString text);
     void failed(QString text);
     void sessionCreated(QString appName, Session* session);
     void appQuitRequired(QString appName);
+    void appChoicesReady(QStringList choices, QString current);
     void busyChanged();
 
 private slots:
@@ -66,6 +71,7 @@ private:
         StateTunnel,
         StateSeekingHost,
         StatePairing,
+        StatePicking,
         StateLaunching,
         StateStreaming,
         StateFailed,
@@ -77,6 +83,7 @@ private:
     void probeHost(const QString& address, quint16 port, int attemptsLeft);
     void startSeeker();
     void launchApp();
+    void readyToLaunch();
 
     QString m_InitialCode;
     StreamingPreferences* m_Preferences;

@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 #include <QHostInfo>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -171,6 +172,14 @@ void SessionApi::connectSession(const QString& code, const QString& wgPublicKey)
         config.pin = pairing["pin"].toString();
         config.pairToken = pairing["pair_token"].toString();
         config.appName = app["name"].toString();
+        for (const QJsonValue& choice : app["choices"].toArray()) {
+            if (choice.isString() && !choice.toString().isEmpty()) {
+                config.appChoices.append(choice.toString());
+            }
+        }
+        if (!config.appChoices.isEmpty() && !config.appChoices.contains(config.appName)) {
+            config.appName = config.appChoices.first();
+        }
         config.networkMode = network["mode"].toString("direct");
 
         if (config.networkMode == "wireguard") {

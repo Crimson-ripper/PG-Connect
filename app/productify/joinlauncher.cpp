@@ -232,7 +232,7 @@ void JoinLauncher::onComputerFound(NvComputer* computer)
     m_Seeker->deleteLater();
 
     if (computer->pairState == NvComputer::PS_PAIRED) {
-        launchApp();
+        readyToLaunch();
         return;
     }
 
@@ -266,14 +266,14 @@ void JoinLauncher::onPairingCompleted(NvComputer* computer, QString error)
     // The host's paired state is only refreshed by the next poll; the stream launcher
     // refuses an unpaired host, so wait for that poll (or give it 15 s anyway).
     if (computer->pairState == NvComputer::PS_PAIRED) {
-        launchApp();
+        readyToLaunch();
         return;
     }
     auto launched = std::make_shared<bool>(false);
     auto launchOnce = [this, launched]() {
         if (!*launched && m_State == StatePairing) {
             *launched = true;
-            launchApp();
+            readyToLaunch();
         }
     };
     connect(m_ComputerManager, &ComputerManager::computerStateChanged, this,
@@ -310,7 +310,15 @@ void JoinLauncher::launchApp()
     // running app and creates the Session. Only the session's app is ever requested.
     m_StreamLauncher = new CliStartStream::Launcher(m_Config.streamHost(), m_Config.appName, m_Preferences, this);
     connect(m_StreamLauncher, &CliStartStream::Launcher::failed, this, &JoinLauncher::fail);
-    connect(m_StreamLauncher, &CliStartStream::Launcher::appQuitRequired, this, &JoinLauncher::appQuitRequired);
+    connect(m_StreamLauncher, &CliStartStream::Launcher::appQuitRequired, this, [this](QString running) {
+        if (canSwitchApps()) {
+            // Switching between our own launchers: no dialog. Sunshine only forgets the old app;
+            // its launcher keeps running on the machine, so switching back is quick.
+            m_StreamLauncher->quitRunningApp();
+        } else {
+            emit appQuitRequired(running);
+        }
+    });
     connect(m_StreamLauncher, &CliStartStream::Launcher::sessionCreated, this,
             [this](QString appName, Session* session) {
         setState(StateStreaming);
@@ -319,6 +327,47 @@ void JoinLauncher::launchApp()
         emit sessionCreated(appName, session);
     });
     m_StreamLauncher->execute(m_ComputerManager);
+}
+
+bool JoinLauncher::canSwitchApps() const
+{
+    return m_Config.appChoices.size() > 1;
+}
+
+void JoinLauncher::readyToLaunch()
+{
+    if (!canSwitchApps()) {
+        launchApp();
+        return;
+    }
+    setState(StatePicking);
+    emit stageChanged(QString());
+    emit appChoicesReady(m_Config.appChoices, m_Config.appName);
+}
+
+void JoinLauncher::chooseApp(const QString& name)
+{
+    if (m_State != StatePicking || !m_Config.appChoices.contains(name)) {
+        return;
+    }
+    m_Config.appName = name;
+    m_Reconnects = 0;
+    m_Api->reportEvent(m_Config, "app_chosen", name);
+    if (m_StreamLauncher) {
+        m_StreamLauncher->deleteLater();
+        m_StreamLauncher = nullptr;
+    }
+    launchApp();
+}
+
+void JoinLauncher::backToPicker()
+{
+    // The player left the stream (Ctrl+Alt+Shift+Q): offer the launchers again instead of quitting.
+    if (m_State != StateStreaming || !canSwitchApps()) {
+        return;
+    }
+    m_Api->reportEvent(m_Config, "back_to_picker", m_Config.appName);
+    readyToLaunch();
 }
 
 void JoinLauncher::reconnect()
