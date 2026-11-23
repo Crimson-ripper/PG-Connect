@@ -177,6 +177,14 @@ void SessionApi::connectSession(const QString& code, const QString& wgPublicKey)
                 config.appChoices.append(choice.toString());
             }
         }
+        // Test builds only: PFY_DEMO_LAUNCHERS=1 adds placeholder launchers to try the picker with many tiles.
+        if (qEnvironmentVariableIntValue("PFY_DEMO_LAUNCHERS") == 1) {
+            config.appChoices << "GOG Galaxy" << "Amazon Games" << "Desktop" << "Minecraft" << "itch.io";
+        }
+        QJsonObject machine = obj["machine"].toObject();
+        config.machineGpu = machine["gpu"].toString();
+        config.machineLocation = machine["location"].toString();
+        config.hourlyPrice = machine["hourly_price"].toDouble();
         if (!config.appChoices.isEmpty() && !config.appChoices.contains(config.appName)) {
             config.appName = config.appChoices.first();
         }

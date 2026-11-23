@@ -45,6 +45,11 @@ struct SessionConfig
     QString appName;            // the app to open (the player's last or the site's default)
     QStringList appChoices;     // 0.1.8: launchers the player may pick and switch between
 
+    // 0.2.0: the rented machine, for the Session panel
+    QString machineGpu;
+    QString machineLocation;
+    double hourlyPrice = 0;
+
     QString networkMode;        // "direct" or "wireguard"
     WireGuardConfig wireguard;
 

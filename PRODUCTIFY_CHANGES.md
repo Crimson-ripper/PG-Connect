@@ -27,7 +27,7 @@ git history record what was modified and when. Design: `docs/DESIGN.md`.
 | `.github/workflows/` | upstream CI workflows removed; `productify-windows.yml` builds and releases PG Connect |
 | `app/streaming/session.cpp`, `session.h` (2026-11-21) | `droppedMidStream()`: records whether a started stream ended because the network dropped, so the Productify join flow can reconnect |
 | `app/gui/StreamSegue.qml` (2026-11-21) | optional `onDropped` callback: on a network drop it hands back to the join flow instead of showing the error and quitting |
-| `app/version.txt` | PG Connect version (0.1.9) |
+| `app/version.txt` | PG Connect version (0.2.0) |
 | `app/Moonlight.exe.manifest` | description |
 | `wix/Moonlight/Product.wxs`, `wix/MoonlightSetup/Bundle.wxs` | product name, manufacturer, install folder, registry keys, new UpgradeCodes, icon, `productify://` handler |
 | `scripts/build-arch.bat`, `scripts/generate-bundle.bat` | exe/zip/installer names; ships LICENSE and NOTICE.md |

@@ -6,6 +6,7 @@
 #include <QObject>
 #include <QElapsedTimer>
 #include <QPointer>
+#include <QVariantMap>
 
 class ComputerManager;
 class ComputerSeeker;
@@ -38,6 +39,8 @@ public:
     Q_INVOKABLE void join(const QString& code, ComputerManager* manager);
     Q_INVOKABLE void quitRunningApp();
     Q_INVOKABLE void cancel();
+    // 0.2.0: leave the machine from the picker (the session itself keeps running until ended)
+    Q_INVOKABLE void disconnectFromMachine();
 
     // Called when the stream ends or the app quits.
     Q_INVOKABLE void finish();
@@ -48,6 +51,8 @@ public:
     Q_INVOKABLE bool canSwitchApps() const;
     Q_INVOKABLE void chooseApp(const QString& name);
     Q_INVOKABLE void backToPicker();
+    // 0.2.0: machine, time connected, credit left and grace countdown, for the Session panel
+    Q_INVOKABLE QVariantMap sessionInfo() const;
 
 signals:
     void stageChanged(QString text);
@@ -57,6 +62,7 @@ signals:
     void appChoicesReady(QStringList choices, QString current);
     // 0.1.9: "" or a warning to show (balance is zero, machine shuts down soon)
     void creditWarning(QString text);
+    void sessionInfoChanged();
     void busyChanged();
 
 private slots:
@@ -107,6 +113,8 @@ private:
     QTimer* m_CountdownTimer;      // updates the warning every second
     qint64 m_GraceEndsMs = 0;      // when the machine shuts down (0: no warning)
     double m_MinTopup = 0;
+    qint64 m_ConnectedAtMs = 0;    // when the picker first showed (0: not connected)
+    int m_MinutesLeft = -1;        // credit left at the machine's price (-1: unknown)
     bool m_OverlayShown = false;
 };
 

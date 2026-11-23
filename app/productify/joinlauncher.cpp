@@ -72,6 +72,11 @@ void JoinLauncher::setState(State state)
 {
     bool wasBusy = isBusy();
     m_State = state;
+    if (state == StateIdle || state == StateFailed) {
+        m_ConnectedAtMs = 0;
+        m_MinutesLeft = -1;
+    }
+    emit sessionInfoChanged();
     if (wasBusy != isBusy()) {
         emit busyChanged();
     }
@@ -349,6 +354,9 @@ bool JoinLauncher::canSwitchApps() const
 
 void JoinLauncher::readyToLaunch()
 {
+    if (!m_ConnectedAtMs) {
+        m_ConnectedAtMs = QDateTime::currentMSecsSinceEpoch();
+    }
     if (!m_StatusTimer->isActive()) {
         m_StatusTimer->start();
         m_Api->fetchStatus(m_Config.code);
@@ -428,6 +436,12 @@ void JoinLauncher::cancel()
     fail(tr("Cancelled."));
 }
 
+void JoinLauncher::disconnectFromMachine()
+{
+    fail(tr("Disconnected. Your session is still running: end it on productifynow.com, or it ends by itself "
+            "after 10 minutes with nobody connected."));
+}
+
 void JoinLauncher::finish()
 {
     m_StatusTimer->stop();
@@ -450,6 +464,8 @@ void JoinLauncher::finish()
 // tops up. Shown over the game (Moonlight's status overlay) and on the PG Connect screen.
 void JoinLauncher::onStatus(const QJsonObject& status)
 {
+    m_MinutesLeft = status.contains("minutes_left") ? status["minutes_left"].toInt() : -1;
+    emit sessionInfoChanged();
     if (status.contains("grace_seconds_left")) {
         m_GraceEndsMs = QDateTime::currentMSecsSinceEpoch() + qint64(status["grace_seconds_left"].toInt()) * 1000;
         m_MinTopup = status["min_topup"].toDouble();
@@ -462,6 +478,23 @@ void JoinLauncher::onStatus(const QJsonObject& status)
         m_CountdownTimer->stop();
     }
     showCreditWarning();
+}
+
+QVariantMap JoinLauncher::sessionInfo() const
+{
+    bool connected = m_State == StatePicking || m_State == StateLaunching || m_State == StateStreaming;
+    return {
+        {"connected", connected},
+        {"gpu", m_Config.machineGpu},
+        {"location", m_Config.machineLocation},
+        {"hourlyPrice", m_Config.hourlyPrice},
+        {"code", m_Config.code},
+        {"app", m_Config.appName},
+        {"connectedAtMs", connected ? m_ConnectedAtMs : 0},
+        {"minutesLeft", m_MinutesLeft},
+        {"graceEndsMs", m_GraceEndsMs},
+        {"minTopup", m_MinTopup},
+    };
 }
 
 void JoinLauncher::showCreditWarning()
